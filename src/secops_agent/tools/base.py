@@ -25,7 +25,8 @@ class ToolSpec:
     description: str
     args_model: type[BaseModel]
     fn: Callable[..., Any]
-    side_effect: bool = False
+    writes: bool = False        # mutates state; counted in the report's "actions taken"
+    side_effect: bool = False   # irreversible; requires a recorded human approval first
 
 
 @dataclass
@@ -77,6 +78,8 @@ class ToolRegistry:
                     )
             else:
                 lines.append("    (no arguments)")
+            if spec.writes:
+                lines.append("    ! writes data")
             if spec.side_effect:
                 lines.append("    ! irreversible: request human approval first")
             lines.append("")

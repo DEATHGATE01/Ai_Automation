@@ -118,6 +118,7 @@ def build_registry(settings: Settings, retriever: Retriever) -> ToolRegistry:
             description="Open a remediation ticket for a finding.",
             args_model=CreateTicketArgs,
             fn=guarded("create_ticket", partial(actions.create_ticket, settings.tickets_path)),
+            writes=True,
         )
     )
     reg.register(
@@ -143,6 +144,7 @@ def build_registry(settings: Settings, retriever: Retriever) -> ToolRegistry:
             ),
             args_model=EscalateArgs,
             fn=guarded("escalate", partial(actions.escalate, settings.escalations_path)),
+            writes=True,
             side_effect=True,
         )
     )
