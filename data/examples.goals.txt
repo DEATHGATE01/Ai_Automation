@@ -1,0 +1,3 @@
+Which critical findings on production assets have breached or are about to breach their remediation SLA, and what should we do about them?
+Triage the findings on the core database asset and open tickets where the policy requires them.
+We have a duplicate vulnerability report on the web gateway. Identify it, decide which record should stay open, and explain why.

@@ -1,0 +1,7 @@
+asset_id,hostname,owner,criticality,environment,internet_facing
+A-001,web-gateway-prod,platform-team,high,prod,true
+A-002,intranet-app-prod,it-apps,low,prod,false
+A-003,core-db-prod,data-platform,critical,prod,false
+A-004,build-sandbox,dev-infra,low,dev,false
+A-005,vpn-edge-prod,network-team,high,prod,true
+A-006,hr-portal-prod,people-ops,medium,prod,true

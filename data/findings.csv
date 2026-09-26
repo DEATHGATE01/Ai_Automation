@@ -1,0 +1,13 @@
+finding_id,asset_id,title,cve,cvss,scanner,detected_at,status,days_open
+F-001,A-001,Remote code execution in web framework,CVE-2026-1188,9.8,nessus,2026-09-20,open,7
+F-002,A-002,Stored cross-site scripting in comments,CVE-2026-2044,7.5,burp,2026-08-30,open,28
+F-003,A-003,Database service missing security patch,,,nessus,2026-07-01,open,88
+F-004,A-005,TLS 1.0 still enabled on management interface,CVE-2019-1559,5.3,qualys,2026-02-20,open,219
+F-005,A-001,Remote code execution in web framework,CVE-2026-1188,9.8,nessus,2026-09-21,open,6
+F-006,A-006,Outdated jQuery with known prototype pollution,CVE-2019-11358,6.1,burp,2026-09-10,open,17
+F-007,A-004,Anonymous FTP write access enabled,,,nessus,2026-09-25,open,2
+F-008,A-003,Weak cipher suites accepted by database listener,CVE-2016-2183,5.9,qualys,2026-06-15,in_progress,104
+F-009,A-005,Exposed administrative console without MFA,CVE-2026-3310,8.1,manual,2026-09-18,open,9
+F-010,A-006,Missing HTTP security headers,,,burp,2026-09-24,closed,3
+F-011,A-002,Verbose error pages leak stack traces,,,manual,2026-04-02,open,178
+F-012,A-003,Default credentials on monitoring agent,CVE-2025-9090,10.0,nessus,2026-03-11,open,200
