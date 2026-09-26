@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     runs_dir: Path = PROJECT_ROOT / "runs"
     prompts_dir: Path = PROJECT_ROOT / "prompts"
 
+    # Retrieval
+    retriever: str = "keyword"
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "secops.db"

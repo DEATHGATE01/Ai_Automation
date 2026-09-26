@@ -1,15 +1,16 @@
 """Policy-document retrieval behind a small protocol.
 
 Two implementations:
-  * KeywordRetriever  - pure stdlib, deterministic, used by every test and as an offline fallback.
-  * ChromaRetriever   - real embedding-based RAG. Default in the CLI.
-Having both is deliberate: the tests stay fast and network-free, and the tool degrades gracefully
-if the local embedding model is unavailable.
+  * KeywordRetriever  - pure stdlib, deterministic, used by every test and as the default.
+  * ChromaRetriever   - real embedding-based RAG, opt-in via SECOPS_RETRIEVER=chroma.
+Having both is deliberate: the tests and the demo run stay fast and network-free, and the tool
+degrades gracefully if the local embedding model is unavailable.
 """
 
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -126,9 +127,15 @@ def load_policy_chunks(policies_dir: Path) -> list[dict[str, Any]]:
 
 
 def build_retriever(settings: Settings) -> Retriever:
-    """Prefer real embeddings; fall back to keyword search if Chroma is unavailable."""
+    """Keyword by default: deterministic, offline, no model download.
+
+    SECOPS_RETRIEVER=chroma opts into real embeddings. Chroma is the upgrade path, not the
+    default, because a first run that has to download a model is a demo that can fail on stage.
+    """
     chunks = load_policy_chunks(settings.data_dir / "policies")
-    try:
-        return ChromaRetriever(chunks, persist_dir=settings.chroma_dir)
-    except Exception:  # noqa: BLE001 - missing model / no disk cache must not break the demo
-        return KeywordRetriever(chunks)
+    if settings.retriever == "chroma":
+        try:
+            return ChromaRetriever(chunks, persist_dir=settings.chroma_dir)
+        except Exception as exc:  # noqa: BLE001 - degrade instead of crashing the run
+            print(f"chroma unavailable ({exc}); falling back to keyword retrieval", file=sys.stderr)
+    return KeywordRetriever(chunks)

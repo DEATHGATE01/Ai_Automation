@@ -4,7 +4,7 @@ setup:            ## Create the venv and install dependencies
 	uv sync
 
 data:             ## Build SQLite + retriever index from data/
-	uv run python scripts/build_knowledge_base.py
+	uv run python -m secops_agent.build_data
 
 test:             ## Run the offline test suite
 	uv run pytest -q
