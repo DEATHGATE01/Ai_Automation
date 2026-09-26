@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# generated artifacts — never commit these
+runs/
+data/secops.db
+data/chroma/
+data/tickets.jsonl
+data/escalations.jsonl
+data/memory.json
