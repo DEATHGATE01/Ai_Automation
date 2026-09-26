@@ -71,7 +71,8 @@ class Settings(BaseSettings):
         if not self.is_local_backend and not self.llm_api_key:
             raise ValueError(
                 "SECOPS_LLM_API_KEY is required for a remote backend "
-                f"({self.llm_base_url}). Set it in .env, or point SECOPS_LLM_BASE_URL at local Ollama."
+                f"({self.llm_base_url}). Set it in .env, or point "
+                "SECOPS_LLM_BASE_URL at local Ollama."
             )
 
 

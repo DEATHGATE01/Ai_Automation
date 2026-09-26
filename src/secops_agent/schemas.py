@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 _FENCE_RE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.IGNORECASE)
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     critical = "critical"
     high = "high"
     medium = "medium"
@@ -59,7 +59,7 @@ class FinishRequest(BaseModel):
     sources: list[str] = Field(default_factory=list)
 
 
-class StepKind(str, Enum):
+class StepKind(StrEnum):
     plan = "plan"
     llm = "llm"
     tool_call = "tool_call"
@@ -75,7 +75,7 @@ class TraceEvent(BaseModel):
     run_id: str
     seq: int = Field(ge=0)
     kind: StepKind
-    ts: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    ts: datetime = Field(default_factory=lambda: datetime.now(UTC))
     step: int | None = None
     payload: dict[str, Any] = Field(default_factory=dict)
 
@@ -92,7 +92,7 @@ class FinalReport(BaseModel):
     limitations: list[str]
     steps_used: int
     tool_calls: int
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 def strip_code_fence(text: str) -> str:
@@ -113,7 +113,7 @@ def parse_step(raw: str, valid_tools: set[str]) -> ToolCallRequest | FinishReque
     if obj.get("done") is True:
         try:
             return FinishRequest.model_validate(obj)
-        except Exception as exc:  # noqa: BLE001 - surfaced to the model verbatim
+        except Exception as exc:  # re-raised as a model-readable reason
             raise ValueError(f"finish payload invalid: {exc}") from exc
 
     if "tool" not in obj:
