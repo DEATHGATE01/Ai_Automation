@@ -4,6 +4,27 @@
 COMPLETE. The take-home submission is built, tested, run live, and committed on `build/v1`.
 
 ## Done (most recent first)
+- 2026-09-27/28 (latest) — INDEPENDENT REVIEW acted on. A cold reviewer (no context, instructed to
+  fail the repo unless it found nothing) returned `passed: false`; every claim I checked was correct:
+  - **Security:** the `escalate` gate only checked that `approver`/`approval_ref` were non-empty, so
+    a model could invent both — while README + docstrings claimed the code enforced provenance. It
+    verified the bypass by execution. Fixed with a per-run `ApprovalLedger` (minted refs, consumed
+    under four checks: exists, same finding, matching approver, single use). Four attacks verified
+    rejected through the registry path; commit afa3fe8.
+  - `parse_step` checked tool NAMES before TYPES, so `{"tool": {...}}` raised `TypeError` from an
+    uncaught branch → run died with a traceback, no report. Fixed + agent-level test.
+  - `max_tool_failures` summed a counter any success cleared → fail/succeed/fail never tripped it,
+    contradicting the README's "total failures". Now two counters (consecutive for the hint,
+    cumulative for the budget).
+  - CVSS bands were hardcoded in `knowledge.py` while `severity_rubric.md` claimed to own them — the
+    "predefined rules" the assessment forbids. Bands are now parsed from the policy at call time,
+    with no fallback; a CVSS 0.0 now surfaces as `needs_review`; a test proves a policy edit changes
+    behaviour. Verified over the real corpus: identical bands, no behaviour regression.
+  - Two report strings asserted what did not happen ("re-planned around it") or named an unread
+    source. Both corrected.
+  - Removed dead `prompts/reporter.md` (nothing loaded it); corrected stale test counts in README.
+  - 124 tests pass, ruff clean, mypy clean. Findings recorded in `docs/decisions.md` and
+    `docs/write-up.md` ("I wrote the claim before the control").
 - 2026-09-27 (later) — VERIFICATION SWEEP + live-run hardening, all evidence-driven:
   - Clean-clone grader simulation (fresh `git clone` → sync → `make data` → tests) caught a real
     grader-experience bug: the `.env.example` inline comment parsed as a 52-char *API key*, so a

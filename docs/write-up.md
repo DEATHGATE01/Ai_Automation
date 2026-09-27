@@ -45,10 +45,11 @@ fails the first call of that tool. Robustness is 20% of the rubric and "watch it
 more than a paragraph claiming it recovers. All three fault modes (`timeout`, `bad_args`, `empty`)
 are demonstrated in the shipped transcripts.
 
-## What running it live taught me
+## What running it live — and one cold review — taught me
 
-Everything below was found by running the agent against a real model, not by reasoning about it —
-and two of these were bugs my own tests were green on.
+Everything below was found by running the agent against a real model or by having an independent
+reviewer read the repo cold, not by reasoning about it — and four of these were bugs my own tests
+were green on.
 
 - **A wrong answer that looked like a right one.** Asked to triage the core database, the model
   invented the id `A-DB01`, `list_findings` returned an empty list, and it reported "no open
@@ -65,6 +66,14 @@ and two of these were bugs my own tests were green on.
   effective recovery was already in the loop: a *new* nudge message.
 - **The gate, in both directions.** Refusing to escalate without approval is one run; `escalate`
   executing with a recorded approver and reference is another. Both are in the transcripts.
+- **A cold review beat my own test suite.** An independent reviewer read the repo with no context
+  and did not pass it. It was right on every point I checked: the approval gate only tested that two
+  strings were non-empty, so a model could invent both — while my README claimed the code enforced
+  provenance. It also found a crash path (`{"tool": {...}}` raised `TypeError` out of an uncaught
+  branch and killed the run), a failure budget that any success reset, and the CVSS bands hardcoded
+  in code while the policy document claimed to own them. All four are now fixed with tests that
+  fail without the fix. The lesson I am keeping: **I wrote the claim before the control.** A
+  security property asserted in a docstring is not a property.
 
 ## Limitations
 
@@ -74,7 +83,7 @@ and two of these were bugs my own tests were green on.
   I defaulted to keyword because a first run that must download an embedding model is a demo that
   can fail on stage — but with 5 policy documents, keyword search is genuinely adequate and I am
   not going to pretend otherwise.
-- **No evaluation harness.** 110 tests cover the *mechanics* (recovery, budgets, parsing, gating).
+- **No evaluation harness.** 124 tests cover the *mechanics* (recovery, budgets, parsing, gating).
   Nothing measures whether the agent's *security judgements* are right. That is the biggest gap and
   the thing I would do first with more time.
 - **Truth is whatever the register says.** The agent has no way to check a finding against the asset

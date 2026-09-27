@@ -101,10 +101,11 @@ Recorded rather than quietly fixed:
 - `ToolSpec.writes` was added mid-build once `actions_taken` needed a definition that was not a
   hardcoded tool-name list.
 
-## Findings from live runs, and what they forced
+## Findings from live runs and from an independent review, and what they forced
 
-Each of these was found by running the agent against a real model. Every one has a failing test that
-preceded the fix, and the runs that exposed them are in `docs/transcripts/`.
+Each of these was found by running the agent against a real model or by a reviewer reading the repo
+cold. Every one has a failing test that preceded the fix, and the runs that exposed the live ones are
+in `docs/transcripts/`.
 
 **An unknown entity filter must fail loudly, not return `[]`.** Live run 3 invented the asset id
 `A-DB01`, got an empty list, and reported "no open findings" as fact. The silent empty was the bug:
@@ -138,3 +139,39 @@ with HTTP 429 (`TPD`, 200K tokens/day). The agent handled it correctly — retri
 labelled failure instead of hanging — but re-running the graded transcripts was not possible that
 day. Rather than fake it, the transcripts are shipped as two labelled cohorts and the gap is stated
 in `docs/transcripts/README.md`.
+
+### From the cold review
+
+**The approval gate was decorative, and the docs claimed otherwise.** This is the one that stings.
+An independent reviewer executed `escalate` with an invented-but-well-formed `approver` and
+`approval_ref` and it succeeded — the check was only "are these two strings non-empty", while both
+the README and the module docstring asserted that the code enforced provenance. A per-run
+`ApprovalLedger` now mints references, and `escalate` consumes one under four checks: it must exist,
+it must have been issued for the same finding, it must be paired with the approver it was minted for,
+and it is burnt on use. A declined approval mints nothing, and the approver in the audit record comes
+from the ledger rather than from the model's argument. Four attacks are now tests. **The lesson:
+I wrote the claim before the control.** A security property asserted in prose is not a property, and
+a reviewer who reads the docstring and then the code will find the gap — which is the point of
+asking for the review.
+
+**`parse_step` crashed the run on a wrongly-typed tool value.** It tested tool *names* before tool
+*types*, so `{"tool": {"name": "list_findings"}}` raised `TypeError: unhashable type` out of a branch
+nothing catches: no compaction, no report, just a traceback. Types are now validated first, and the
+bad response is compacted like every other malformed reply.
+
+**`max_tool_failures` was not the budget the README described.** It summed a per-argument counter
+that any success cleared, so fail/succeed/fail/succeed never tripped it while the docs promised
+"total failures". Two different questions now have two counters: consecutive failures per call drive
+the repeat-failure hint, cumulative failures drive the budget.
+
+**The CVSS bands were hardcoded while the policy claimed to own them.** The reviewer caught the
+exact thing the assessment forbids — predefined rules — in the one place I had missed it.
+`load_severity_bands()` now parses the rubric at call time, with no fallback (a silent fallback to
+baked-in numbers would be the same bug wearing a hat). Two consequences worth noting: a CVSS 0.0,
+which the rubric does not place in any band, now surfaces as `needs_review` instead of being filed as
+`low`; and a test proves that rewriting the policy document changes the agent's behaviour.
+
+**Two report strings asserted things that did not happen.** A limitation claimed the agent
+"re-planned around" a failing tool (it injects a hint and continues), and a run that stopped before
+any observation could name "findings table" as a source it never read. An audit artifact that
+overstates what happened is worse than no artifact.

@@ -29,7 +29,6 @@ def _write_prompts(tmp_path):
     d.mkdir(exist_ok=True)
     (d / "planner.md").write_text("plan it {tool_schema}", encoding="utf-8")
     (d / "executor.md").write_text("execute it {tool_schema}", encoding="utf-8")
-    (d / "reporter.md").write_text("report it", encoding="utf-8")
 
 
 def _agent(responses, tmp_path, calls=None):

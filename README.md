@@ -47,7 +47,7 @@ git clone <repo> && cd secops-agent
 uv sync                 # create the venv and install dependencies
 cp .env.example .env    # then edit .env (see Configuration below)
 make data               # build the SQLite knowledge base from data/*.csv
-make test               # 96 offline tests, no network, no API key
+make test               # 124 offline tests, no network, no API key
 ```
 
 Then run it:
@@ -154,8 +154,8 @@ src/secops_agent/
   agent.py        The two-phase loop
   tools/          base.py (registry+validation), knowledge.py, actions.py, faults.py, __init__.py
 data/             synthetic assets.csv, findings.csv, policies/*.md
-prompts/          planner.md, executor.md, reporter.md
-tests/            96 offline tests
+prompts/          planner.md, executor.md
+tests/            124 offline tests
 docs/             architecture diagram, write-up, decision log, run transcripts
 ```
 
