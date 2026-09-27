@@ -117,3 +117,28 @@ def test_empty_content_never_raises(monkeypatch):
     # must NOT raise: the agent's own compaction handles an empty response
     assert client.complete(system="s", messages=[{"role": "user", "content": "x"}]) == ""
     assert calls["n"] == 1
+
+
+def test_provider_reasoning_is_captured_when_content_is_empty(monkeypatch):
+    # Groq's gpt-oss returns empty content with the text in a separate `reasoning` field
+    # (confirmed by direct API probe). Capturing it turns an opaque empty trace entry into
+    # an explained one.
+    client = OpenAICompatLLM(_settings(), sleep=lambda _s: None)
+    msg = type("M", (), {"content": "", "reasoning": "We need to check the SLA policy first"})()
+    resp = type("R", (), {"choices": [type("C", (), {"message": msg})()]})()
+    stub = SimpleNamespace(create=lambda **k: resp)
+    monkeypatch.setattr(client._client.chat, "completions", stub)
+
+    client.complete(system="s", messages=[{"role": "user", "content": "x"}])
+    assert client.last_reasoning == "We need to check the SLA policy first"
+
+
+def test_missing_reasoning_field_is_empty_not_an_error(monkeypatch):
+    client = OpenAICompatLLM(_settings(), sleep=lambda _s: None)
+    msg = type("M", (), {"content": '{"done": true}'})()
+    resp = type("R", (), {"choices": [type("C", (), {"message": msg})()]})()
+    stub = SimpleNamespace(create=lambda **k: resp)
+    monkeypatch.setattr(client._client.chat, "completions", stub)
+
+    client.complete(system="s", messages=[{"role": "user", "content": "x"}])
+    assert client.last_reasoning == ""

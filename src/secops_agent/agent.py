@@ -396,6 +396,9 @@ class Agent:
                 # keep what the model actually said (truncated) so a failure can be diagnosed
                 # after the fact instead of guessed at
                 "raw": raw[:400],
+                "provider_reasoning": (
+                    getattr(self.llm, "last_reasoning", "") or ""
+                )[:300],
             },
         )
         messages.append({"role": "assistant", "content": raw})

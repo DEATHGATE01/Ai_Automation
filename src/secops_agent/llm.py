@@ -35,6 +35,19 @@ class OpenAICompatLLM:
             timeout=settings.llm_timeout_s,
         )
         self.last_usage: dict[str, int] = {}
+        self.last_reasoning: str = ""
+
+    @staticmethod
+    def _extract_reasoning(message: Any) -> str:
+        """Provider-exposed chain of thought, when there is one (Groq gpt-oss has `reasoning`).
+
+        Not used as an answer - it is prose. Captured only so a trace can explain why a turn
+        came back empty instead of showing an opaque `raw: ''`.
+        """
+        value = getattr(message, "reasoning", None)
+        if value is None and getattr(message, "model_extra", None):
+            value = message.model_extra.get("reasoning")
+        return str(value or "").strip()
 
     def complete(self, *, system: str, messages: list[dict[str, str]]) -> str:
         attempts = self._settings.llm_max_retries + 1
@@ -64,6 +77,10 @@ class OpenAICompatLLM:
                 # reasoning-only turns for a given context. Retrying only burns calls and
                 # backoff sleeps. Returning "" lets the agent's own compaction send a NEW
                 # message (a specific nudge), which is what actually recovers the run.
+                #
+                # When content IS empty, keep the model's reasoning if the provider exposes it
+                # (gpt-oss does): it turns an opaque `raw: ''` in the trace into an explanation.
+                self.last_reasoning = self._extract_reasoning(resp.choices[0].message)
                 return content
             except Exception as exc:  # noqa: BLE001 - provider SDK error types vary by version
                 last_error = exc
@@ -80,6 +97,7 @@ class ScriptedLLM:
     def __init__(self, responses: list[str]) -> None:
         self._responses = list(responses)
         self.last_usage: dict[str, int] = {}
+        self.last_reasoning: str = ""
         self.calls = 0
         self.systems: list[str] = []
         self.message_log: list[list[dict[str, str]]] = []
