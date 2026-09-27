@@ -203,6 +203,23 @@ class Agent:
                 finish = step
                 break
 
+            if step is None:
+                # A pure-reasoning step: no tool to run, the model just narrated its thinking.
+                # Advance without a call; one trace event keeps the step visible.
+                self.trace.emit(
+                    StepKind.llm, step=steps_used, payload={"reasoning": True}
+                )
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "Noted. If you are done, reply with done: true; otherwise call a tool "
+                            "to continue."
+                        ),
+                    }
+                )
+                continue
+
             spec = self.registry.spec(step.tool)
             self.trace.emit(StepKind.llm, step=steps_used, payload={"thought": step.thought})
             self.trace.emit(

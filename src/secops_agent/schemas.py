@@ -100,8 +100,11 @@ def strip_code_fence(text: str) -> str:
     return _FENCE_RE.sub("", text.strip()).strip()
 
 
-def parse_step(raw: str, valid_tools: set[str]) -> ToolCallRequest | FinishRequest:
-    """Turn one LLM message into a validated request, or raise ValueError with a compact reason."""
+def parse_step(raw: str, valid_tools: set[str]) -> ToolCallRequest | FinishRequest | None:
+    """Turn one LLM message into a validated request, or raise ValueError with a compact reason.
+
+    Returns None for a pure-reasoning step (no tool), which the caller advances without a call.
+    """
     try:
         obj = json.loads(strip_code_fence(raw))
     except json.JSONDecodeError as exc:
@@ -120,6 +123,10 @@ def parse_step(raw: str, valid_tools: set[str]) -> ToolCallRequest | FinishReque
         raise ValueError("response needs either a 'tool' field or 'done': true")
 
     tool = obj["tool"]
+    if tool is None or tool == "null":
+        # Live models write pure-reasoning steps as the STRING "null" even when told to use
+        # real null; treat both spellings as "no tool", not as an unknown tool name.
+        return None
     if tool not in valid_tools:
         raise ValueError(f"unknown tool {tool!r}; available: {sorted(valid_tools)}")
 

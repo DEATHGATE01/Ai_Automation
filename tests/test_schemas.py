@@ -38,6 +38,14 @@ def test_parse_step_reads_finish():
     assert step.key_findings == ["a"]
 
 
+def test_parse_step_accepts_string_null_tool():
+    # Live models write pure-reasoning steps as "tool": "null" (the string) even when told
+    # to use real null. That is a reasoning step, not an unknown tool.
+    raw = '{"thought": "think", "tool": "null", "args": {}}'
+    step = parse_step(raw, valid_tools=VALID_TOOLS)
+    assert step is None
+
+
 def test_parse_step_strips_markdown_fence():
     raw = '```json\n{"thought": "t", "tool": "get_asset", "args": {"asset_id": "A-001"}}\n```'
     step = parse_step(raw, valid_tools={"get_asset"})
