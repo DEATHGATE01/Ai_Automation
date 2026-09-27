@@ -175,3 +175,35 @@ which the rubric does not place in any band, now surfaces as `needs_review` inst
 "re-planned around" a failing tool (it injects a hint and continues), and a run that stopped before
 any observation could name "findings table" as a source it never read. An audit artifact that
 overstates what happened is worse than no artifact.
+
+### From the re-review (same class of bug, one level down)
+
+The re-review confirmed all four original findings were genuinely closed — it verified each by
+execution, including six variants of the gate attack — and then found the fix had left the *same
+class* of hole. That is worth recording precisely, because it is the interesting part.
+
+**A guard written as `a and b and a != b` is a guard that omission can switch off.** The same-finding
+check read `if approved_for and finding_id and approved_for != finding_id`, so a blank on either side
+skipped it — and blank was the default: `ApprovalArgs` had no required `finding_id`,
+`request_human_approval` defaulted it to `""`, and the executor prompt never told the model to name
+the finding. The reviewer reproduced it end to end: a human answered
+`[APPROVAL REQUIRED] Approve the recommended escalation? (finding ) [y/N]`, and the model then
+escalated `F-999` — a generic yes spent on a finding the human was never shown. The finding is now
+mandatory in the schema (`min_length=1`), at mint time and at consume time, and the comparison is
+unconditional. The general lesson: when the failure mode is *omission*, the default must be the
+restrictive one, never the permissive one.
+
+**An audit record that could not say who approved.** The approver argument defaulted to `"auto"` and
+was unreachable from the model-facing schema, so every interactive approval recorded approver `"auto"`
+next to `approval_mode: "interactive"` — a record that contradicts itself. Interactive approvals now
+record the OS login (or `SECOPS_APPROVER`, a real setting like any other), and the escalation record
+carries the question the human answered, so an auditor can compare what was approved with what was
+escalated.
+
+**A report that named the wrong budget.** Both stop paths shared one summary, so a run stopped by the
+tool failure budget claimed it had hit the *step* budget while its own limitations list said
+otherwise.
+
+**A malformed policy is now a loud error.** The rubric parser rejects inverted and overlapping bands;
+otherwise document order would silently decide an overlap, which is the opposite of the policy being
+the source of truth.

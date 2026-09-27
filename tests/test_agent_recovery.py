@@ -106,6 +106,23 @@ def test_a_stopped_run_does_not_name_a_source_it_never_read(tmp_path):
     assert not any("findings table" in source for source in report.sources)
 
 
+def test_a_tool_failure_stop_does_not_claim_the_step_budget(tmp_path):
+    # Re-review finding: both stop paths shared one summary, so a run stopped by the tool failure
+    # budget claimed it had hit the *step* budget - the report contradicted its own limitations.
+    _write_prompts(tmp_path)
+    agent = _scripted_agent(tmp_path, [True, False, True], max_tool_failures=2)
+    report = agent.run("g")
+    assert any("failure budget" in limitation for limitation in report.limitations)
+    assert "step budget" not in report.summary.lower()
+
+
+def test_a_step_budget_stop_still_says_step_budget(tmp_path):
+    _write_prompts(tmp_path)
+    agent = _scripted_agent(tmp_path, [False] * 8, max_tool_failures=99, max_steps=2)
+    report = agent.run("g")
+    assert "step budget" in report.summary.lower()
+
+
 def test_agent_retries_a_failed_tool_and_succeeds(tmp_path):
     _write_prompts(tmp_path)
     agent = _agent(

@@ -51,15 +51,27 @@ class CreateTicketArgs(BaseModel):
 
 
 class ApprovalArgs(BaseModel):
-    question: str = Field(description="What you are asking the human to approve, in one sentence")
-    finding_id: str = Field(default="", description="Finding the approval concerns")
+    question: str = Field(
+        min_length=1, description="What you are asking the human to approve, in one sentence"
+    )
+    finding_id: str = Field(
+        min_length=1,
+        description=(
+            "The finding this approval is for. Mandatory: an approval that does not name its "
+            "finding is not accepted."
+        ),
+    )
 
 
 class EscalateArgs(BaseModel):
-    finding_id: str = Field(description="Finding to escalate, e.g. F-009")
-    reason: str = Field(description="Why escalation is warranted, citing the policy")
-    approver: str = Field(description="Approver identity returned by request_human_approval")
-    approval_ref: str = Field(description="approval_ref returned by request_human_approval")
+    finding_id: str = Field(min_length=1, description="Finding to escalate, e.g. F-009")
+    reason: str = Field(min_length=1, description="Why escalation is warranted, citing the policy")
+    approver: str = Field(
+        min_length=1, description="Approver identity returned by request_human_approval"
+    )
+    approval_ref: str = Field(
+        min_length=1, description="approval_ref returned by request_human_approval"
+    )
 
 
 def build_registry(settings: Settings, retriever: Retriever) -> ToolRegistry:
@@ -138,6 +150,7 @@ def build_registry(settings: Settings, retriever: Retriever) -> ToolRegistry:
                     actions.request_human_approval,
                     ledger,
                     auto_approve=settings.auto_approve,
+                    approver=settings.approver or None,
                 ),
             ),
         )

@@ -72,6 +72,23 @@ def test_a_missing_rubric_is_a_loud_error_not_a_fallback(db, tmp_path):
         knowledge.list_findings(db, rubric_path=tmp_path / "nope.md")
 
 
+def test_overlapping_bands_are_rejected(db, tmp_path):
+    # A malformed policy must fail loudly rather than let document order silently decide.
+    (tmp_path / "policies" / "severity_rubric.md").write_text(
+        "## CVSS bands\nCVSS 0.0-10.0 is critical. CVSS 9.0-10.0 is low.\n", encoding="utf-8"
+    )
+    with pytest.raises(ToolError, match="overlap"):
+        knowledge.list_findings(db)
+
+
+def test_an_inverted_band_is_rejected(db, tmp_path):
+    (tmp_path / "policies" / "severity_rubric.md").write_text(
+        "## CVSS bands\nCVSS 9.0-1.0 is critical.\n", encoding="utf-8"
+    )
+    with pytest.raises(ToolError, match="lower bound"):
+        knowledge.list_findings(db)
+
+
 def test_a_zero_cvss_score_is_not_silently_called_low(db):
     # Review finding: the code floored the 'low' band at 0.0, but the rubric defines low as
     # 0.1-3.9 and says nothing about 0.0. A 0.0 score must surface as needs_review, exactly like an

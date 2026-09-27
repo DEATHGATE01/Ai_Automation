@@ -59,7 +59,7 @@ detail is in `docs/decisions.md`.
 
 ## Limitations
 
-- **No evaluation harness.** 124 tests cover the *mechanics* (recovery, budgets, parsing, gating), not
+- **No evaluation harness.** 134 tests cover the *mechanics* (recovery, budgets, parsing, gating), not
   whether the agent's security *judgements* are right. That is the biggest gap.
 - **Keyword retrieval by default.** Chroma is wired and opt-in via `SECOPS_RETRIEVER=chroma`; with five
   policy documents keyword search is genuinely adequate, and I am not going to pretend otherwise.

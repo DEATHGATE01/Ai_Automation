@@ -13,7 +13,9 @@ docstring and in the README are true of the ledger below, and the tests pin each
 
 from __future__ import annotations
 
+import getpass
 import json
+import os
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -22,6 +24,23 @@ from typing import Any
 from .base import ToolError
 
 VALID_SEVERITIES = {"critical", "high", "medium", "low"}
+
+
+def _interactive_approver() -> str:
+    """Who is at the keyboard, for the audit record.
+
+    Without this, an interactive approval was recorded as approver "auto" alongside
+    `approval_mode: interactive` - a record that cannot say who approved. SECOPS_APPROVER lets an
+    operator name themselves explicitly; otherwise the OS login is used.
+    """
+    for var in ("SECOPS_APPROVER", "USER", "USERNAME", "LOGNAME"):
+        value = os.environ.get(var, "").strip()
+        if value:
+            return value
+    try:
+        return getpass.getuser()
+    except Exception:  # noqa: BLE001 - identity lookup can fail on locked-down Windows setups
+        return "unknown-interactive-approver"
 
 
 class ApprovalLedger:
@@ -36,10 +55,15 @@ class ApprovalLedger:
     def __init__(self) -> None:
         self._open: dict[str, dict[str, Any]] = {}
 
-    def mint(self, finding_id: str, approver: str, mode: str) -> str:
+    def mint(self, finding_id: str, approver: str, mode: str, question: str) -> str:
         """Record a granted approval and return its single-use reference."""
         ref = _next_id("APR")
-        self._open[ref] = {"finding_id": finding_id, "approver": approver, "mode": mode}
+        self._open[ref] = {
+            "finding_id": finding_id,
+            "approver": approver,
+            "mode": mode,
+            "question": question,
+        }
         return ref
 
     def consume(self, approval_ref: str, finding_id: str, approver: str) -> dict[str, Any]:
@@ -50,11 +74,19 @@ class ApprovalLedger:
                 f"unknown or already-used approval_ref {approval_ref!r}. An approval_ref must come "
                 "from request_human_approval in this run, and each one is valid exactly once."
             )
-        approved_for = record["finding_id"]
-        if approved_for and finding_id and approved_for != finding_id:
+        target = str(finding_id or "").strip()
+        if not target:
             raise ToolError(
-                f"approval_ref {approval_ref} was issued for finding {approved_for}, "
-                f"not {finding_id}. Ask for approval for the finding you are escalating."
+                "escalate needs the finding id it is escalating: an unnamed target cannot be "
+                "checked against the approval"
+            )
+        # Unconditional: an approval is only ever valid for the finding it names. An earlier version
+        # wrote `if approved_for and finding_id and ...`, so a blank on either side skipped the
+        # check entirely - and blank was the default, so a generic "yes" was spendable on anything.
+        if record["finding_id"] != target:
+            raise ToolError(
+                f"approval_ref {approval_ref} was issued for finding {record['finding_id']}, "
+                f"not {target}. Ask for approval for the finding you are escalating."
             )
         if str(record["approver"]).strip().lower() != (approver or "").strip().lower():
             raise ToolError(
@@ -103,21 +135,30 @@ def create_ticket(
 def request_human_approval(
     ledger: ApprovalLedger,
     question: str,
-    finding_id: str = "",
+    finding_id: str,
     auto_approve: bool = False,
-    approver: str = "auto",
+    approver: str | None = None,
 ) -> dict[str, Any]:
-    """Ask the operator to approve consequential action; mint a single-use reference if granted.
+    """Ask the operator to approve an action; mint a single-use reference if granted.
 
     In auto-approve runs (used to record transcripts when no human is present) it self-approves and
     labels itself `mode: auto`, so a transcript can never imply a human was there when none was.
     A declined request mints nothing, which is what makes the refusal meaningful downstream.
+
+    The finding is mandatory: an approval that does not name what it approves can be spent on
+    anything, which defeats the point of approving it.
     """
+    if not str(finding_id or "").strip():
+        raise ToolError(
+            "request_human_approval needs the finding it concerns. An approval that does not name "
+            "its finding could be spent on any of them."
+        )
+    who = (approver or ("auto" if auto_approve else _interactive_approver())).strip()
     if auto_approve:
         return {
             "approved": True,
-            "approver": approver,
-            "approval_ref": ledger.mint(finding_id, approver, "auto"),
+            "approver": who,
+            "approval_ref": ledger.mint(finding_id, who, "auto", question),
             "mode": "auto",
             "question": question,
             "finding_id": finding_id,
@@ -127,8 +168,10 @@ def request_human_approval(
     approved = answer.strip().lower() in {"y", "yes"}
     return {
         "approved": approved,
-        "approver": approver if approved else "",
-        "approval_ref": ledger.mint(finding_id, approver, "interactive") if approved else "",
+        "approver": who if approved else "",
+        "approval_ref": (
+            ledger.mint(finding_id, who, "interactive", question) if approved else ""
+        ),
         "mode": "interactive",
         "question": question,
         "finding_id": finding_id,
@@ -158,6 +201,8 @@ def escalate(
         "approver": approval["approver"],
         "approval_ref": approval_ref,
         "approval_mode": approval["mode"],
+        # what the human actually agreed to, so an auditor can compare it with what was escalated
+        "approval_question": approval["question"],
         "escalated_at": datetime.now(UTC).isoformat(),
     }
     _append(path, record)

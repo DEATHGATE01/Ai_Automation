@@ -4,7 +4,25 @@
 COMPLETE. The take-home submission is built, tested, run live, and committed on `build/v1`.
 
 ## Done (most recent first)
-- 2026-09-27/28 (latest) — INDEPENDENT REVIEW acted on. A cold reviewer (no context, instructed to
+- 2026-09-28 (latest) — RE-REVIEW acted on. The re-review confirmed all four earlier fixes genuinely
+  closed (verified by execution, including six attack variants on the approval gate) and found the
+  same class of defect one level down:
+  - **The same-finding check was skippable by omission** (`if approved_for and finding_id and ...`),
+    and blank was the default: `ApprovalArgs` had no required `finding_id` and the executor prompt
+    never told the model to name the finding. Reproduced end to end — a human answering a prompt that
+    named no finding then authorised escalation of an unrelated finding. Fix: the finding is now
+    mandatory in the schema (`min_length=1`), at mint time and at consume time, and the comparison is
+    unconditional.
+  - **Interactive approvals recorded approver "auto"**, because that argument defaulted to "auto" and
+    was unreachable from the model-facing schema — a record that contradicted its own
+    `approval_mode: interactive`. Interactive approvals now record the OS login (or `SECOPS_APPROVER`,
+    now a real Settings field), and the record carries the question the human answered.
+  - **A tool-failure stop reported the step budget** in its summary while its limitations said
+    otherwise. `_budget_finish` now takes the stop reason.
+  - **The rubric parser validates bands**: inverted or overlapping bands are a loud ToolError, so
+    document order can never silently decide an overlap.
+  - 134 tests pass, ruff clean, mypy clean.
+- 2026-09-27/28 — INDEPENDENT REVIEW acted on. A cold reviewer (no context, instructed to
   fail the repo unless it found nothing) returned `passed: false`; every claim I checked was correct:
   - **Security:** the `escalate` gate only checked that `approver`/`approval_ref` were non-empty, so
     a model could invent both — while README + docstrings claimed the code enforced provenance. It

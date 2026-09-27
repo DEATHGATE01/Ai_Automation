@@ -36,6 +36,9 @@ class Settings(BaseSettings):
 
     # Behaviour
     auto_approve: bool = False
+    # Who to record as the approver. Empty means "auto" for auto-approvals and the OS login for
+    # interactive ones, so an audit record never claims a human approved something it cannot name.
+    approver: str = ""
     inject_fault: str | None = None
 
     # Paths

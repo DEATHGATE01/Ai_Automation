@@ -48,6 +48,18 @@ def load_severity_bands(rubric_path: Path) -> tuple[tuple[str, float, float], ..
         raise ToolError(
             f"no CVSS bands found in {path}; expected a line like 'CVSS 9.0-10.0 is critical'"
         )
+    for name, low, high in bands:
+        if low > high:
+            raise ToolError(f"band {name!r} in {path} has its lower bound above its upper bound")
+    for i, (name_a, low_a, high_a) in enumerate(bands):
+        for name_b, low_b, high_b in bands[i + 1 :]:
+            # Without this a policy edit could silently make document order decide overlaps,
+            # which is the opposite of the rubric being the source of truth.
+            if low_a <= high_b and low_b <= high_a:
+                raise ToolError(
+                    f"bands {name_a!r} ({low_a}-{high_a}) and {name_b!r} ({low_b}-{high_b}) "
+                    f"overlap in {path}"
+                )
     return bands
 
 

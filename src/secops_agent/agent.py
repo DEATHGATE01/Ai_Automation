@@ -206,6 +206,8 @@ class Agent:
         # cumulative, never cleared: this is what `max_tool_failures` counts, so interleaved
         # successes cannot reset the budget back to zero
         total_tool_failures = 0
+        # which budget actually stopped the loop - the report must name the right one
+        stop_reason = "steps"
         limitations: list[str] = []
         steps_used = 0
         finish: FinishRequest | None = None
@@ -331,6 +333,7 @@ class Agent:
                 limitations.append(
                     "Tool failure budget exhausted; finishing with partial evidence."
                 )
+                stop_reason = "tool_failures"
                 break
         else:
             limitations.append(
@@ -339,20 +342,32 @@ class Agent:
             self.trace.emit(StepKind.recovery, payload={"message": "step budget exhausted"})
 
         if finish is None:
-            finish = self._budget_finish(actions_taken, steps_used)
+            finish = self._budget_finish(actions_taken, steps_used, stop_reason)
             self.trace.emit(StepKind.finish, payload=finish.model_dump(mode="json"))
 
         return self._finalise(plan, finish, actions_taken, steps_used, limitations)
 
     # ------------------------------------------------------------------- helpers
-    def _budget_finish(self, actions_taken: list[str], steps_used: int) -> FinishRequest:
+    def _budget_finish(
+        self, actions_taken: list[str], steps_used: int, stop_reason: str
+    ) -> FinishRequest:
         sources = sorted({action.split(":", 1)[0] for action in actions_taken})
-        return FinishRequest(
-            thought="budget exhausted",
-            summary=(
+        # Name the budget that actually fired. Both stop paths used to share one summary, so a run
+        # stopped by the tool failure budget claimed it had hit the step budget - a report that
+        # contradicted its own limitations list.
+        if stop_reason == "tool_failures":
+            summary = (
+                "The run stopped because the tool failure budget was exhausted. The evidence "
+                "gathered so far is recorded in the run transcript."
+            )
+        else:
+            summary = (
                 f"The goal was not fully answered within the step budget ({steps_used} steps). "
                 "The evidence gathered so far is recorded in the run transcript."
-            ),
+            )
+        return FinishRequest(
+            thought=f"budget exhausted ({stop_reason})",
+            summary=summary,
             key_findings=[f"Actions taken before stopping: {len(actions_taken)}"],
             decisions=[],
             sources=sources,

@@ -50,7 +50,7 @@ git clone <repo> && cd secops-agent
 uv sync                                    # create the venv and install dependencies
 cp .env.example .env                       # then edit .env (see Configuration below)
 uv run python -m secops_agent.build_data   # build the SQLite knowledge base from data/*.csv
-uv run pytest                              # 124 offline tests, no network, no API key
+uv run pytest                              # 134 offline tests, no network, no API key
 ```
 
 Then run it:
@@ -115,13 +115,18 @@ Writing:
 | `escalate` | **Irreversible.** Refuses to run without a real `approver` + `approval_ref` |
 
 `escalate` is the only irreversible tool, and it is gated **in code**: `request_human_approval` mints
-an `approval_ref` into a per-run ledger, and `escalate` accepts nothing else. The reference must
-exist, must have been issued for the *same* finding, must be paired with the approver it was minted
-for, and it is burnt on use — while a declined request mints nothing at all. The approver written to
-the audit record comes from the ledger, not from the model's argument. An independent review found an
-earlier version of this check decorative (it only tested that two strings were non-empty, so a model
-could invent both); the ledger is the fix, and `tests/test_action_tools.py` now pins each property.
-Set `SECOPS_AUTO_APPROVE=false` (the default) to see the approval step happen in the transcript.
+an `approval_ref` into a per-run ledger, and `escalate` accepts nothing else. The approval must `name
+the finding` it is for (mandatory, at the schema level as well as in the ledger), the reference must
+have been issued for *that same* finding, it must be paired with the approver it was minted for, and
+it is burnt on use — while a declined request mints nothing at all. The record written to
+`data/escalations.jsonl` carries the approver, the approval mode and the question the human actually
+answered, so an auditor can check that what was approved is what was escalated.
+
+Both halves of that paragraph are pinned by tests, because an independent review twice found the
+earlier versions decorative: the first accepted any non-empty strings, and the second skipped the
+same-finding check whenever either side was blank — which was the default. See `docs/decisions.md`.
+Set `SECOPS_AUTO_APPROVE=false` (the default) to see the approval step happen in the transcript;
+`SECOPS_APPROVER` names who gets recorded as the approver.
 
 ## Where the evidence lives
 
@@ -158,14 +163,14 @@ src/secops_agent/
   tools/          base.py (registry+validation), knowledge.py, actions.py, faults.py, __init__.py
 data/             synthetic assets.csv, findings.csv, policies/*.md
 prompts/          planner.md, executor.md
-tests/            124 offline tests
+tests/            134 offline tests
 docs/             architecture diagram, write-up, decision log, run transcripts
 ```
 
 ## Testing
 
 ```bash
-uv run pytest                            # 124 tests, ~3s, no network, no API key
+uv run pytest                            # 134 tests, ~3s, no network, no API key
 uv run ruff check src tests && uv run mypy src   # lint + type-check, both clean
 ```
 

@@ -16,8 +16,11 @@ Hard rules:
 - Severity bands come from CVSS, but the business criticality of the asset adjusts them. Read the
   severity rubric before assigning a final severity, and say which rule you applied.
 - Cite the policy document name when you apply a rule.
-- `escalate` is irreversible. You MUST call `request_human_approval` first and pass the returned
-  `approver` and `approval_ref` into `escalate`. Never fabricate an approver or a reference.
+- `escalate` is irreversible. You MUST call `request_human_approval` first, naming the exact
+  `finding_id` you intend to escalate - the approval is bound to that finding and is valid once - and
+  then pass the returned `approver` and `approval_ref` into `escalate` for that same finding. An
+  approval that names no finding, or a finding other than the one you escalate, is rejected. Never
+  fabricate an approver or a reference.
 - If a tool fails, read the error, then change your approach: different arguments, a different tool,
   or fewer constraints. Do not repeat a call that already failed with the same arguments.
 - Finish as soon as the goal is answered. Do not call tools for their own sake.

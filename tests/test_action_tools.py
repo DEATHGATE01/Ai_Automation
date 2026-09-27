@@ -105,6 +105,72 @@ def test_ledgers_do_not_share_approvals(tmp_path):
                          approval_ref=approval["approval_ref"])
 
 
+def test_an_approval_minted_without_a_finding_cannot_escalate_anything(tmp_path):
+    # Re-review finding: the same-finding check was skipped whenever EITHER side was empty, and
+    # empty was the default for the approval tool - so a generic "yes" authorised escalation of any
+    # finding the model chose.
+    ledger = actions.ApprovalLedger()
+    with pytest.raises(ToolError, match="finding"):
+        actions.request_human_approval(ledger, "approve?", finding_id="", auto_approve=True)
+    assert not (tmp_path / "e.jsonl").exists()
+
+
+def test_escalating_without_a_finding_is_refused(tmp_path):
+    ledger = actions.ApprovalLedger()
+    approval = actions.request_human_approval(ledger, "q", finding_id="F-004", auto_approve=True)
+    with pytest.raises(ToolError, match="finding"):
+        actions.escalate(ledger, tmp_path / "e.jsonl", finding_id="", reason="x",
+                         approver=approval["approver"],
+                         approval_ref=approval["approval_ref"])
+    assert not (tmp_path / "e.jsonl").exists()
+
+
+def test_the_model_facing_schemas_require_a_named_finding():
+    # The scope has to be mandatory at the schema level too, or the model can simply omit it.
+    from pydantic import ValidationError
+
+    from secops_agent.tools import ApprovalArgs, EscalateArgs
+
+    with pytest.raises(ValidationError):
+        ApprovalArgs(question="approve the escalation?")
+    with pytest.raises(ValidationError):
+        EscalateArgs(finding_id="", reason="r", approver="a", approval_ref="APR-1")
+
+
+def test_a_human_approval_records_who_approved(monkeypatch, tmp_path):
+    # Re-review finding: every record said approver "auto", including interactive ones, because the
+    # approver argument defaulted to "auto" and was unreachable from the model-facing schema.
+    monkeypatch.setattr("builtins.input", lambda _prompt: "y")
+    monkeypatch.setattr(actions, "_interactive_approver", lambda: "ops-lead")
+    ledger = actions.ApprovalLedger()
+    approval = actions.request_human_approval(ledger, "q", finding_id="F-004", auto_approve=False)
+    assert approval["approver"] == "ops-lead"
+    out = actions.escalate(ledger, tmp_path / "e.jsonl", finding_id="F-004", reason="r",
+                           approver=approval["approver"],
+                           approval_ref=approval["approval_ref"])
+    assert out["approver"] == "ops-lead"
+    assert out["approval_mode"] == "interactive"
+
+
+def test_the_record_carries_the_question_the_human_answered(tmp_path):
+    # An auditor must be able to check that what was approved is what was escalated.
+    ledger = actions.ApprovalLedger()
+    question = "Escalate F-004 for a 30-day SLA breach?"
+    approval = actions.request_human_approval(
+        ledger, question, finding_id="F-004", auto_approve=True
+    )
+    out = actions.escalate(ledger, tmp_path / "e.jsonl", finding_id="F-004", reason="r",
+                           approver=approval["approver"],
+                           approval_ref=approval["approval_ref"])
+    assert out["approval_question"] == question
+
+
+def test_a_finding_id_of_whitespace_is_not_a_name(tmp_path):
+    ledger = actions.ApprovalLedger()
+    with pytest.raises(ToolError, match="finding"):
+        actions.request_human_approval(ledger, "q", finding_id="   ", auto_approve=True)
+
+
 def test_auto_approve_labels_itself_as_automatic():
     out = actions.request_human_approval(actions.ApprovalLedger(), "escalate F-004?",
                                          finding_id="F-004", auto_approve=True)
