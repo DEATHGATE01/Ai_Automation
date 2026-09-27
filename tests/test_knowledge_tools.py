@@ -41,6 +41,15 @@ def test_list_findings_filters_by_severity(db):
     assert [r["finding_id"] for r in rows] == ["F-001"]
 
 
+def test_list_findings_fails_loudly_on_unknown_asset_id(db):
+    # A filter on an entity that does not exist must be a 404-shaped ToolError, not a
+    # silent empty list: "no matches" and "no such asset" are different facts, and the
+    # model read a silent [] as 'no open findings' in live run 3.
+    with pytest.raises(ToolError) as excinfo:
+        knowledge.list_findings(db, asset_id="A-DB01")
+    assert "no asset with id 'A-DB01'" in str(excinfo.value)
+
+
 def test_list_findings_joins_asset_context(db):
     rows = knowledge.list_findings(db, asset_id="A-001")
     assert rows[0]["owner"] == "platform-team"

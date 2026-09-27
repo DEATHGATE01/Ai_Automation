@@ -9,6 +9,10 @@ Hard rules:
 - Ground every factual claim in an observation you actually received. If you have not retrieved it,
   do not assert it. If data is missing (for example a finding with no CVSS score), say so explicitly
   and treat it as `needs_review` per the severity rubric.
+- NEVER conclude from an assumption. If a tool returns an empty list, that means "no matches for
+  the exact arguments you used" — it does NOT mean the thing does not exist. Verify an identifier
+  (with get_asset or an unfiltered list) before filtering on it. An unverified identifier that was
+  only assumed makes the whole conclusion invalid; state it as an open question instead.
 - Severity bands come from CVSS, but the business criticality of the asset adjusts them. Read the
   severity rubric before assigning a final severity, and say which rule you applied.
 - Cite the policy document name when you apply a rule.

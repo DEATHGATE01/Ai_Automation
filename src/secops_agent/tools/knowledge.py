@@ -41,6 +41,12 @@ def _cvss_band(cvss: float | None) -> str:
     return "needs_review"
 
 
+def _known_asset_ids(db_path: Path) -> list[str]:
+    """The real asset ids, surfaced in the unknown-entity error so the model can self-correct."""
+    with _connect(db_path) as conn:
+        return [r[0] for r in conn.execute("SELECT asset_id FROM assets ORDER BY asset_id")]
+
+
 def list_findings(
     db_path: Path,
     severity: str | None = None,
@@ -59,6 +65,19 @@ def list_findings(
     if asset_id:
         where.append("f.asset_id = ?")
         params.append(asset_id)
+
+    if asset_id is not None:
+        with _connect(db_path) as conn:
+            exists = conn.execute(
+                "SELECT 1 FROM assets WHERE asset_id = ?", (asset_id,)
+            ).fetchone()
+        if exists is None:
+            known = _known_asset_ids(db_path)
+            raise ToolError(
+                f"no asset with id {asset_id!r} exists in the inventory; "
+                f"known asset ids: {known}. Call get_asset or re-run list_findings without "
+                "the asset filter instead of concluding from an assumption."
+            )
 
     sql = (
         "SELECT f.*, a.hostname, a.owner, a.criticality, a.environment, a.internet_facing "
