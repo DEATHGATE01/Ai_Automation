@@ -111,10 +111,14 @@ Writing:
 | `request_human_approval` | Ask a human; returns an approver and a reference |
 | `escalate` | **Irreversible.** Refuses to run without a real `approver` + `approval_ref` |
 
-`escalate` is the only irreversible tool, and it is gated: it raises unless it is handed an
-`approver` and `approval_ref` that actually came from `request_human_approval`. The prompt forbids
-inventing them; the code enforces it. Set `SECOPS_AUTO_APPROVE=false` (the default) to see the
-approval step happen in the transcript.
+`escalate` is the only irreversible tool, and it is gated **in code**: `request_human_approval` mints
+an `approval_ref` into a per-run ledger, and `escalate` accepts nothing else. The reference must
+exist, must have been issued for the *same* finding, must be paired with the approver it was minted
+for, and it is burnt on use — while a declined request mints nothing at all. The approver written to
+the audit record comes from the ledger, not from the model's argument. An independent review found an
+earlier version of this check decorative (it only tested that two strings were non-empty, so a model
+could invent both); the ledger is the fix, and `tests/test_action_tools.py` now pins each property.
+Set `SECOPS_AUTO_APPROVE=false` (the default) to see the approval step happen in the transcript.
 
 ## Where the evidence lives
 

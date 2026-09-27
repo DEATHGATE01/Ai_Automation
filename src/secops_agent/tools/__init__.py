@@ -65,6 +65,9 @@ class EscalateArgs(BaseModel):
 def build_registry(settings: Settings, retriever: Retriever) -> ToolRegistry:
     reg = ToolRegistry()
     injector = faults.FaultInjector(settings.inject_fault)
+    # One approval ledger per run: a ref minted for this run's approval cannot be reused by another
+    # run (or by a replayed trace), and escalate() accepts nothing else.
+    ledger = actions.ApprovalLedger()
 
     def guarded(name: str, fn):
         """Wrap a data/action tool so an injected fault surfaces as a normal tool failure."""
@@ -131,7 +134,11 @@ def build_registry(settings: Settings, retriever: Retriever) -> ToolRegistry:
             args_model=ApprovalArgs,
             fn=guarded(
                 "request_human_approval",
-                partial(actions.request_human_approval, auto_approve=settings.auto_approve),
+                partial(
+                    actions.request_human_approval,
+                    ledger,
+                    auto_approve=settings.auto_approve,
+                ),
             ),
         )
     )
@@ -143,7 +150,7 @@ def build_registry(settings: Settings, retriever: Retriever) -> ToolRegistry:
                 "an auditable record."
             ),
             args_model=EscalateArgs,
-            fn=guarded("escalate", partial(actions.escalate, settings.escalations_path)),
+            fn=guarded("escalate", partial(actions.escalate, ledger, settings.escalations_path)),
             writes=True,
             side_effect=True,
         )
