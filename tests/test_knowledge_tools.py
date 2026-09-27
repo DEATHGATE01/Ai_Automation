@@ -33,7 +33,54 @@ def db(tmp_path):
     ])
     conn.commit()
     conn.close()
+    # The CVSS bands come from the policy document, so a db without a rubric next to it cannot band
+    # findings at all. The fixture writes the real rubric's rules.
+    policies = tmp_path / "policies"
+    policies.mkdir(exist_ok=True)
+    (policies / "severity_rubric.md").write_text(
+        "## CVSS bands\n"
+        "CVSS 9.0-10.0 is critical. CVSS 7.0-8.9 is high. CVSS 4.0-6.9 is medium. "
+        "CVSS 0.1-3.9 is low.\n",
+        encoding="utf-8",
+    )
     return path
+
+
+def test_the_bands_are_read_from_the_policy_document(db, tmp_path):
+    # Review finding: the thresholds were a constant in this module while the policy corpus claimed
+    # to own them, so a policy edit changed nothing. Rewriting the rubric must change behaviour.
+    (tmp_path / "policies" / "severity_rubric.md").write_text(
+        "## CVSS bands\nCVSS 6.0-10.0 is critical. CVSS 0.0-5.9 is low.\n", encoding="utf-8"
+    )
+    row = knowledge.get_finding(db, "F-001")  # cvss 9.8
+    assert row["cvss_band"] == "critical"
+    # a 6.5 finding is 'medium' under the shipped rubric and 'critical' under this one
+    with sqlite3.connect(db) as conn:
+        conn.execute(
+            "INSERT INTO findings VALUES (?,?,?,?,?,?,?,?,?)",
+            ("F-099", "A-003", "mid", None, 6.5, "nessus", "2026-09-01", "open", 30),
+        )
+        conn.commit()
+    bands = knowledge.load_severity_bands(tmp_path / "policies" / "severity_rubric.md")
+    assert knowledge._cvss_band(6.5, bands) == "critical"
+    assert knowledge.get_finding(db, "F-099")["cvss_band"] == "critical"
+
+
+def test_a_missing_rubric_is_a_loud_error_not_a_fallback(db, tmp_path):
+    # No baked-in thresholds: a silent fallback would be the hardcoded-rule bug wearing a hat.
+    with pytest.raises(ToolError, match="severity rubric missing"):
+        knowledge.list_findings(db, rubric_path=tmp_path / "nope.md")
+
+
+def test_a_zero_cvss_score_is_not_silently_called_low(db):
+    # Review finding: the code floored the 'low' band at 0.0, but the rubric defines low as
+    # 0.1-3.9 and says nothing about 0.0. A 0.0 score must surface as needs_review, exactly like an
+    # unscored finding, rather than being filed as 'low'.
+    with sqlite3.connect(db) as conn:
+        conn.execute("INSERT INTO findings VALUES (?,?,?,?,?,?,?,?,?)",
+                     ("F-098", "A-003", "zero", None, 0.0, "nessus", "2026-09-01", "open", 30))
+        conn.commit()
+    assert knowledge.get_finding(db, "F-098")["cvss_band"] == "needs_review"
 
 
 def test_list_findings_filters_by_severity(db):
