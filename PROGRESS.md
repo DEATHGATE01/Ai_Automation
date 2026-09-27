@@ -1,32 +1,41 @@
 # PROGRESS.md
 
 ## Current Focus
-Phase 9 — live LLM runs. Phases 0-8 are complete, committed, and green.
-
-## In Progress
-- Live run transcripts (the submission needs 2-3). BLOCKED on a usable LLM backend.
-
-## Blocked
-- No LLM backend for the graded runs. Local Ollama has only `codellama:7b-instruct`: it has a
-  4096-token context, so the planner prompt + full tool schema overflows it and it returns
-  unparseable output (both planner attempts failed in the first live run; the fallback plan then
-  engaged correctly, but that is not a transcript worth submitting). It is also ~210 s per call on
-  this CPU, so a 12-step run would take ~40 minutes. `AGENTROUTER_API_KEY` is exported in the shell
-  but the endpoint returns `unauthorized client detected`.
-  Needed: either a Groq/OpenAI-compatible key (fast, reliable) or a bigger local model
-  (`qwen2.5:7b-instruct`, 32K context — slow but keyless).
+COMPLETE. The take-home submission is built, tested, run live, and committed on `build/v1`.
 
 ## Done (most recent first)
-- 2026-09-27 — Phases 4-8 complete: trace, memory, 7 tools, agent loop, report, data builder, CLI.
-  96 tests pass, ruff clean, mypy clean. Committed on branch `build/v1`.
-- 2026-09-27 — docs/: architecture.html (layout verified: 0 text/box overlaps, no overflow),
-  write-up.md, decisions.md, README.md.
-- 2026-09-27 — `make data` builds the SQLite KB: 6 assets, 12 findings, 4 unscored, 0 orphan refs.
+- 2026-09-27 — Phase 9 LIVE RUNS on Groq `openai/gpt-oss-120b` (key merged from the user's root
+  .env into `secops-agent/.env`, gitignored, never displayed):
+  - Run 1 `run-20260927-152446-844613`: SLA breaches — found F-012 (critical, 200d open vs 7d
+    window), ticket T-741cfa2d, escalation REFUSED without human approval (gate works live).
+  - Run 2 `run-20260927-153202-899eac`: induced `search_policy:timeout@1` recovered; F-001/F-005
+    duplicates of CVE-2026-1188 identified, earlier kept, no-duplicate-rule flagged honestly.
+  - Run 3 `run-20260927-154914-11ea1a`: verified asset id A-003, F-012 (raw CVSS 10.0), ticket
+    T-6a0f595a with policy citations.
+  - Self-eval find: run 3a `run-20260927-154205-wrong-answer` — model assumed id "A-DB01", tool
+    returned silent [], model reported "no open findings" (wrong). Root cause fixed in ec36463
+    (unknown-entity filters fail loudly with real ids; prompt forbids concluding from assumptions);
+    recovery verified by run 3. Shipped as failure+fix evidence.
+- 2026-09-27 — all five transcripts archived under `docs/transcripts/` with a labelling README;
+  secret scan clean (no key material in any tracked file).
+- 2026-09-27 — docs complete: architecture.html (layout verified: 0 overlaps), write-up.md,
+  decisions.md, README.md, transcripts/README.md.
+- 2026-09-27 — Phases 0-8 complete: 98 tests pass, ruff clean, mypy clean.
+- 2026-09-27 — Live-run bug fixed pre-Groq: qwen2.5 writes reasoning steps as the string "null";
+  `parse_step` now returns None for no-tool steps (commit a71a417).
+- 2026-09-27 — repo bootstrapped; SOUL.md question resolved (workspace copies are inert;
+  decision left to the user).
 
-## Active Claims (do not edit — in progress in another session)
-- whole repo — initial build, since 2026-09-27
+## Remaining (manual, user)
+- Create the public GitHub repo (`gh` not installed) and push `build/v1`.
+- Submit the form: Engineer track, repo link, architecture diagram upload (docs/architecture.html
+  → print to PDF from the browser), transcripts upload (zip docs/transcripts/ or the README plus
+  run 1-3 folders), write-up (docs/write-up.md), domain goal text, time spent (~10-12h including
+  the live-run debugging), copy declaration.
+- Deadline question (48h vs 5-7 days) still unresolved with HR — if 48h applies, submit today.
 
 ## Open Decisions / Questions
-- Is the 3-option .docx or the 2-track form the real gate? Email pending to HR; building the superset.
-- Confirm submission deadline (48h vs 5-7 days).
-- Which LLM model produces the submitted transcripts? Must be named in the form and write-up.
+- Is the 3-option `Agentic AI Assessment.docx` or the 2-track Google Form the real gate?
+  Built the superset: Engineer deliverable whose domain satisfies docx Option 3.
+- Which LLM produced the submitted transcripts: Groq `openai/gpt-oss-120b` — name it in the form
+  and write-up (docs/transcripts/README.md already does).

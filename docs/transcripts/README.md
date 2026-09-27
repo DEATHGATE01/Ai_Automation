@@ -1,8 +1,9 @@
 # Run transcripts — secops-agent
 
-Live runs of the real agent (`uv run secops-agent run "..."`), unedited. Each folder carries the four
-artifacts a run produces: `trace.jsonl` (append-only event log), `transcript.md` (human-readable
-rendering), `report.md`, `report.json`.
+Live runs of the real agent (`uv run secops-agent run "..."`), unedited. Each folder carries the
+artifacts that run actually produced — `trace.jsonl` (append-only event log) always, plus
+`transcript.md`, `report.md` and `report.json` when the run finished. The one folder with only
+`trace.jsonl` (`run-20260927-001829-bd9528`) is the crashed planner attempt: the crash is the point.
 
 ## The three graded runs
 
