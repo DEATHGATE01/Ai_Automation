@@ -5,6 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -64,6 +65,18 @@ class Settings(BaseSettings):
     @property
     def memory_path(self) -> Path:
         return self.data_dir / "memory.json"
+
+    @field_validator("llm_api_key", mode="after")
+    @classmethod
+    def _clean_api_key(cls, value: str) -> str:
+        """Defend against a .env line like `SECOPS_LLM_API_KEY=   # required unless ...`.
+
+        Found by clean-clone testing: some dotenv parsers keep a trailing comment as the
+        value, so this became a truthy 52-char "key". validate_backend() then passed and the
+        run died with a confusing 401 instead of saying "set a key". Real keys never contain
+        whitespace or '#', so truncate at the first '#' and strip surrounding quotes.
+        """
+        return value.split("#", 1)[0].strip().strip('"').strip("'")
 
     @property
     def is_local_backend(self) -> bool:
