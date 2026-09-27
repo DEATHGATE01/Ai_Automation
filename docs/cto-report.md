@@ -40,3 +40,29 @@ none of them confirmed:
 **Risk assessment.** The submission is complete and green. The main residual risk is *overclaiming*,
 because the agent and its docs have twice asserted a property the code did not enforce. The second
 risk is time: the manual steps (create the public repo, push, submit the form) belong to the human.
+
+---
+
+## 2026-09-28 04:1x — pass 0b (authority grant, by the human's request)
+
+The human granted the overseer **full command** and asked for self-direction, self-improvement, and the
+ability to create its own agents. What changed, and why it is safe:
+
+- **`docs/CTO.md` rewritten** as a charter of authority, not a list of permissions: the overseer may fix,
+  refactor, extend, restructure, add tools/tests/docs/features, spawn sub-agents (`delegate_task`), edit
+  its own charter and this prompt, create its own skills, and **decide when the project is done**.
+- **Self-improvement is now a mechanism, not a slogan:** `docs/cto-lessons.md` is a learning ledger the
+  overseer must read before working and append to before finishing — the only thing that makes pass N
+  smarter than pass 1. It is seeded with the four lessons this project actually earned. Each pass must
+  also audit its predecessor's claims by execution.
+- **Self-termination:** on meeting the definition of done the overseer writes `docs/CTO-COMPLETE.md` and
+  creates `.cto-stop`; the overseer loop exits at the next boundary. It decides when to stop working.
+- **Four rails are kept, deliberately**: never touch/commit `.env`; never push or rewrite history; revert
+  unless pytest+ruff+mypy stay green; never fabricate evidence. These protect the human's assets rather
+  than constrain judgement, and the overseer may not remove them itself — only argue for it in a report.
+
+**What a later pass should check.** Whether the authority grant caused drift: an agent told it may do
+anything is exactly the agent that starts refactoring a working submission for no reason. The test is
+the report's evidence, not its ambition — if a pass changed something, it must show the failing test
+that justified it and the green suite that followed.
+

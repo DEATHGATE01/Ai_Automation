@@ -15,3 +15,8 @@ data/chroma/
 data/tickets.jsonl
 data/escalations.jsonl
 data/memory.json
+
+# created by the autonomous CTO overseer to end its own run (docs/CTO.md)
+.cto-stop
+# written by the overseer when it judges the project complete
+CTO-COMPLETE.md
