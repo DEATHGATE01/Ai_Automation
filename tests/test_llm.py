@@ -91,21 +91,20 @@ class _EmptyThenGood:
         return type("R", (), {"choices": [type("C", (), {"message": msg})()]})()
 
 
-def test_empty_content_is_retried_not_returned(monkeypatch):
-    # Live finding: gpt-oss sometimes returns an empty `content` (text in `reasoning`),
-    # and returning "" cost the agent a whole step and printed "one model response was
-    # unparseable" in every single run's report.
-    client = OpenAICompatLLM(_settings(), sleep=lambda _s: None)
+def test_empty_content_is_returned_immediately_without_burning_retries(monkeypatch):
+    # Live finding: gpt-oss returns an empty `content` on some turns (text lands in
+    # `reasoning`). Four identical retries produced four identical empties, so retrying here
+    # is pure waste - the agent's nudge (a NEW message) is what recovers the run. The client
+    # must therefore spend exactly ONE call and hand "" back.
+    client = OpenAICompatLLM(_settings(llm_max_retries=3), sleep=lambda _s: None)
     stub = _EmptyThenGood()
     monkeypatch.setattr(client._client.chat, "completions", stub)
 
-    assert client.complete(system="s", messages=[{"role": "user", "content": "x"}]) == (
-        '{"done": true}'
-    )
-    assert stub.calls == 2
+    assert client.complete(system="s", messages=[{"role": "user", "content": "x"}]) == ""
+    assert stub.calls == 1
 
 
-def test_persistently_empty_content_returns_empty_string_without_crashing(monkeypatch):
+def test_empty_content_never_raises(monkeypatch):
     client = OpenAICompatLLM(_settings(llm_max_retries=1), sleep=lambda _s: None)
     calls = {"n": 0}
 
@@ -115,6 +114,6 @@ def test_persistently_empty_content_returns_empty_string_without_crashing(monkey
         return type("R", (), {"choices": [type("C", (), {"message": msg})()]})()
 
     monkeypatch.setattr(client._client.chat, "completions", SimpleNamespace(create=always_empty))
-    # must NOT raise: the agent's own compaction handles an unparseable response
+    # must NOT raise: the agent's own compaction handles an empty response
     assert client.complete(system="s", messages=[{"role": "user", "content": "x"}]) == ""
-    assert calls["n"] == 2
+    assert calls["n"] == 1
