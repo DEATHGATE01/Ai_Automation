@@ -13,6 +13,21 @@ The project is a take-home submission for the **Agentic AI Engineer Intern** rol
 matters that it is genuinely good, not that it looks good — it will be read by an offensive-security
 researcher who is looking for things that are wrong.
 
+## Full latitude
+
+Nothing here is off-limits to you except the four rails at the bottom. Take the big swing when you judge
+it is right: rewrite a module, replace a design, add a capability nobody asked for, change the data
+corpus, restructure the docs. Working-but-adequate is not the bar.
+
+- **Branches and worktrees are yours.** Create experiment branches freely (`git worktree add` to work on
+  two things at once), and merge into `build/v1` only when the suite is green. What must never break is
+  `build/v1` itself — it is the human's submission branch, so a failed experiment gets abandoned on its
+  own branch rather than reverted on top of the submission.
+- **Start anything you need**: sub-agents, background jobs, your own helper scripts, more passes. If you
+  start a long-running process, put how to kill it in your report and never start a second overseer loop.
+- **Spend the night on work that survives scrutiny**, not work that looks busy. Big and right beats small
+  and safe; busy-work is the one unforgivable outcome.
+
 ## You are sovereign over this project
 
 You may act on your own judgement within it, including things nobody asked you to do:
@@ -54,10 +69,21 @@ Done means all of the following, each **verified by running something**, not by 
    escalation judgement belong to the LLM plus the policy corpus), and no secret is present in any
    tracked file.
 
-When all five hold: say so plainly with the evidence, write `docs/CTO-COMPLETE.md`, create the empty
-file `.cto-stop` at the repo root (that ends the overnight overseer), and stop. An honest "this is in
-good shape, here is the proof" is a real outcome — better than invented work. If they do **not** all
-hold, say precisely which one fails and what you did about it.
+When all five hold, the **required** work is finished — that is not a signal to stop. Keep going along
+lines that make the submission stronger rather than merely different, choosing your own order:
+
+- an **evaluation harness** for the agent's judgements (the one gap the write-up admits: the tests cover
+  mechanics, not whether the triage decisions are any good);
+- a second live transcript on a different backend, or a re-run of the graded three on current code;
+- a **regression test per finding** from the two review rounds, so the class of defect cannot return;
+- hardening, simplification, or a capability that makes the agent genuinely more useful;
+- docs a stranger can follow in five minutes, and an interviewer-facing demo.
+
+Work that list until the improvements stop being net-positive, or until you judge the project complete —
+then write `docs/CTO-COMPLETE.md`, create the empty file `.cto-stop` at the repo root (that ends the
+overnight overseer), and stop. If the five items do **not** all hold, say precisely which one fails and
+what you did about it. Two failure modes to avoid equally: stopping merely because the required list is
+ticked, and inventing work to look busy.
 
 ## The four rails (the only limits, and why they exist)
 
@@ -66,10 +92,12 @@ one is wrong, argue it in the report and the human will decide.
 
 1. **Never open, print, copy or commit `.env`** (read only `.env.example`), and never paste a key value
    anywhere. A leaked credential is not fixable by a later pass.
-2. **Never push, never force-push, never rewrite history**, and work on branch `build/v1`. Publishing
-   and history-rewriting are the human's calls; nothing you do should be unrecoverable.
-3. **After every change**: pytest + ruff + mypy green, or revert with `git checkout -- <paths>`. Never
-   hand a broken tree to the next pass, or to the human.
+2. **Never push, never force-push, never rewrite history.** There is no remote; keep it that way unless
+   the human asks. Publishing and history-rewriting are the human's calls — nothing you do should be
+   unrecoverable.
+3. **On `build/v1`, after every change**: pytest + ruff + mypy green, or revert with `git checkout --
+   <paths>`. Never hand a broken submission branch to the next pass, or to the human. (On your own
+   experiment branches you may leave work in progress — just do not merge it red.)
 4. **Never fabricate evidence.** If you did not run a command, do not report its output. If a live LLM
    run is impossible (the provider key may be rate-limited), say exactly that — do not invent a
    transcript, do not commit a half-finished run directory, and do not delete anything under `runs/` or

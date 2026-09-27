@@ -66,3 +66,31 @@ anything is exactly the agent that starts refactoring a working submission for n
 the report's evidence, not its ambition — if a pass changed something, it must show the failing test
 that justified it and the green suite that followed.
 
+---
+
+## 2026-09-28 04:3x — pass 0c ("go wild")
+
+The human's instruction was to let the overseer go wild while they sleep. Scope was widened; the four
+rails were kept, and it is worth writing down why that is not a contradiction.
+
+**Widened.** A `## Full latitude` section now heads the charter: take the big swing — rewrite a module,
+replace a design, add a capability nobody asked for; experiment branches and worktrees are yours to
+create; start sub-agents, background jobs, helper scripts, extra passes. The old "stop when the required
+list is ticked" rule is replaced: once the definition of done holds, the overseer keeps going along a
+menu aimed at making the submission *stronger* (an evaluation harness for the agent's judgements — the
+gap the write-up itself admits — a regression test per review finding, a second live transcript,
+hardening, a demo a stranger can follow). It stops when improvements stop being net-positive, or when it
+declares the project complete. Stopping early purely because a checklist is ticked is now explicitly a
+failure mode, as is inventing work.
+
+**Kept, deliberately.** (1) Never open or commit `.env`; (2) never push or rewrite history; (3) `build/v1`
+stays green after every change — experiments live on their own branch until they are green; (4) never
+fabricate evidence. These are not restrictions on judgement, they are the difference between an
+autonomous agent that returns the project in better shape and one that returns a leaked key, an
+unrecoverable history, or a red submission branch at 9am. The overseer may argue against any of them in
+a report, and the human can lift them in one edit — but it may not remove them itself.
+
+**Runtime.** The successor overseer was restarted with a 12-pass budget (was 8). It still exits early if
+the overseer writes `.cto-stop`, so the effective limit is its own judgement, not the counter.
+
+

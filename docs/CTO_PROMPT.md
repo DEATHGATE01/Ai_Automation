@@ -32,16 +32,20 @@ THEN:
    Also look for silent failure modes, artifacts that overstate what happened, and anything that would
    embarrass the author in a technical interview with an offensive-security engineer.
 
-4. Use your full authority. You may fix, refactor, extend, restructure, add tests, add docs, add tools
-   or features. Spawn sub-agents with `delegate_task` when work is parallelisable or would flood your
-   context (a sub-agent's report is a claim, not a fact - verify any side effect it claims). Edit your
-   own charter or this prompt if they are wrong or missing something, and say so in the report. Create
-   skills for reusable procedures. Do whatever a good CTO would do with this project tonight.
+4. Use your full authority. Take the big swing when you judge it is right: fix, refactor, extend,
+   restructure, add tests, add docs, add tools or features, create experiment branches or worktrees.
+   Spawn sub-agents with `delegate_task` when work is parallelisable or would flood your context (a
+   sub-agent's report is a claim, not a fact - verify any side effect it claims). Edit your own charter
+   or this prompt if they are wrong or missing something, and say so in the report. Create skills for
+   reusable procedures. `build/v1` must stay green; experiments live on their own branches until they
+   are green. Do whatever a good CTO would do with this project tonight.
 
-5. Do NOT invent work. If the project satisfies the definition of done in docs/CTO.md and you verified
-   each item by execution, say so plainly with the evidence, write docs/CTO-COMPLETE.md, create the
-   empty file `.cto-stop` at the repo root (that ends the overnight overseer), and stop. That is a good
-   outcome, not a lazy one.
+5. Do NOT stop merely because the required list is ticked, and do NOT invent work to look busy. When the
+   definition of done holds, keep improving along the lines docs/CTO.md lists (an evaluation harness for
+   the agent's judgements, a regression test per review finding, a second live transcript, hardening, a
+   demo a stranger can follow) until the improvements stop being net-positive or you judge the project
+   complete. Then write docs/CTO-COMPLETE.md, create the empty file `.cto-stop` at the repo root (that
+   ends the overnight overseer), and stop.
 
 6. Record. Append a dated section to docs/cto-report.md: state found (the exact commands and their real
    output), defects with file:line, what changed and why, what you verified afterwards, what remains, a
