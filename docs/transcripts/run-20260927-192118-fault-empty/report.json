@@ -1,0 +1,23 @@
+{
+  "run_id": "run-20260927-192118-c39e46",
+  "goal": "Retrieve and present all findings that are currently open",
+  "summary": "The goal was not fully answered within the step budget (5 steps). The evidence gathered so far is recorded in the run transcript.",
+  "key_findings": [
+    "Actions taken before stopping: 0"
+  ],
+  "decisions": [],
+  "actions_taken": [],
+  "sources": [
+    "findings table"
+  ],
+  "assumptions": [
+    "The policy defines the status value as exactly \"open\" and the default limit of list_findings is sufficient for the expected volume"
+  ],
+  "limitations": [
+    "The model returned an empty response once; the agent re-prompted it.",
+    "Tool failure budget exhausted; finishing with partial evidence."
+  ],
+  "steps_used": 5,
+  "tool_calls": 4,
+  "generated_at": "2026-09-27T19:22:30.741350Z"
+}

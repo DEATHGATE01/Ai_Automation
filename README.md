@@ -158,7 +158,7 @@ docs/             architecture diagram, write-up, decision log, run transcripts
 ## Testing
 
 ```bash
-make test     # 96 tests, ~2s, no network, no API key
+make test     # 110 tests, ~2s, no network, no API key
 make lint     # ruff + mypy, both clean
 ```
 

@@ -78,7 +78,7 @@ exactly on its SLA boundary (7 days open, 7-day window — breached or not depen
 policy as "exceeds"). Getting these wrong is visible.
 
 **Offline-first test suite.** The LLM sits behind a one-method protocol and `ScriptedLLM` feeds
-canned responses. 96 tests run in ~2 seconds with no network and no API key, which covers malformed
+canned responses. 110 tests run in ~2 seconds with no network and no API key, which covers malformed
 JSON, invented tools, repeated tool failure, exhausted budgets and a rejected finish payload. If the
 model is down, the evidence that the agent recovers is still runnable.
 
@@ -100,3 +100,41 @@ Recorded rather than quietly fixed:
 - Retrieval default changed from chroma to keyword (reasoning above).
 - `ToolSpec.writes` was added mid-build once `actions_taken` needed a definition that was not a
   hardcoded tool-name list.
+
+## Findings from live runs, and what they forced
+
+Each of these was found by running the agent against a real model. Every one has a failing test that
+preceded the fix, and the runs that exposed them are in `docs/transcripts/`.
+
+**An unknown entity filter must fail loudly, not return `[]`.** Live run 3 invented the asset id
+`A-DB01`, got an empty list, and reported "no open findings" as fact. The silent empty was the bug:
+the tool now raises with the known ids in the message, and the executor prompt forbids asserting
+anything not observed. Re-verified live (a later run asked for `A-VPN-EDGE`, was corrected by the
+error, and landed on `A-005`).
+
+**Take the first complete JSON object.** Live models wrap JSON in prose and emit several objects
+back-to-back (violating "one action per response"); both surfaced as "invalid JSON" and cost a step.
+`extract_first_json_object` does a string-aware depth scan, used by both the planner and the executor
+so the two paths cannot drift. Cheaper and more general than another prompt instruction.
+
+**Do not retry an empty completion at the client.** First fix was a retry; then the trace showed
+four identical retries returning four identical empties, so the retry added latency and cost for
+nothing. The agent's compaction already sends a *new* message (a specific nudge), which is the actual
+recovery. The client now spends exactly one call. Recorded because "we retry" was intuitive and
+wrong.
+
+**Capture the provider's `reasoning` field.** A direct API probe showed Groq's `gpt-oss` returns
+`content: ""` with the text in `reasoning`, which is why runs reported an unexplained empty turn.
+It is prose, so it is never used as an answer — it is recorded in the error event so an empty turn is
+diagnosable from the trace instead of being an opaque `raw: ""`.
+
+**Error events record the raw response.**
+Found while diagnosing the above: the trace said "invalid JSON" and nothing about what the model
+actually sent. Now the truncated raw text (and reasoning) ride along with every rejection, which is
+what made all three parser findings above possible.
+
+**A provider's daily token cap is a real failure mode.** Mid-verification, live runs began failing
+with HTTP 429 (`TPD`, 200K tokens/day). The agent handled it correctly — retried, then exited with a
+labelled failure instead of hanging — but re-running the graded transcripts was not possible that
+day. Rather than fake it, the transcripts are shipped as two labelled cohorts and the gap is stated
+in `docs/transcripts/README.md`.

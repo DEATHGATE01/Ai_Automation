@@ -42,7 +42,29 @@ guarantees — is the main thing I would defend in a review.
 
 **Deterministic fault injection, not `sleep()` and hope.** `SECOPS_INJECT_FAULT=list_findings:timeout@1`
 fails the first call of that tool. Robustness is 20% of the rubric and "watch it break" is worth
-more than a paragraph claiming it recovers.
+more than a paragraph claiming it recovers. All three fault modes (`timeout`, `bad_args`, `empty`)
+are demonstrated in the shipped transcripts.
+
+## What running it live taught me
+
+Everything below was found by running the agent against a real model, not by reasoning about it —
+and two of these were bugs my own tests were green on.
+
+- **A wrong answer that looked like a right one.** Asked to triage the core database, the model
+  invented the id `A-DB01`, `list_findings` returned an empty list, and it reported "no open
+  findings". The tool was *too* forgiving: an unknown filter returned `[]` instead of an error. Now
+  it fails loudly and lists the real ids, and the prompt forbids concluding from an unverified
+  assumption. That run ships as evidence, next to the passing re-run.
+- **The parser was stricter than the model.** `gpt-oss` sometimes wraps JSON in prose, and sometimes
+  emits three JSON objects back-to-back; both were rejected as "invalid JSON" and cost a step each.
+  The response is now parsed by taking the first complete JSON object.
+- **One model quirk, measured rather than assumed.** Most runs reported "one response was
+  unparseable". A direct API probe showed why: the model returns `content: ""` with the text in a
+  separate `reasoning` field, on step 1 in 4 of the first 5 runs. I first "fixed" this by retrying —
+  then measured four identical retries returning four identical empties, and removed the retry. The
+  effective recovery was already in the loop: a *new* nudge message.
+- **The gate, in both directions.** Refusing to escalate without approval is one run; `escalate`
+  executing with a recorded approver and reference is another. Both are in the transcripts.
 
 ## Limitations
 
@@ -52,7 +74,7 @@ more than a paragraph claiming it recovers.
   I defaulted to keyword because a first run that must download an embedding model is a demo that
   can fail on stage — but with 5 policy documents, keyword search is genuinely adequate and I am
   not going to pretend otherwise.
-- **No evaluation harness.** 96 tests cover the *mechanics* (recovery, budgets, parsing, gating).
+- **No evaluation harness.** 110 tests cover the *mechanics* (recovery, budgets, parsing, gating).
   Nothing measures whether the agent's *security judgements* are right. That is the biggest gap and
   the thing I would do first with more time.
 - **Truth is whatever the register says.** The agent has no way to check a finding against the asset

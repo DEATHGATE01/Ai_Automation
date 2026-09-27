@@ -1,0 +1,24 @@
+{
+  "run_id": "run-20260927-192234-6b32e5",
+  "goal": "Triage all open findings across every asset, open remediation tickets for each, and escalate any findings that constitute policy breaches.",
+  "summary": "The goal was not fully answered within the step budget (1 steps). The evidence gathered so far is recorded in the run transcript.",
+  "key_findings": [
+    "Actions taken before stopping: 0"
+  ],
+  "decisions": [],
+  "actions_taken": [],
+  "sources": [
+    "findings table"
+  ],
+  "assumptions": [
+    "The severity rubric and SLA retrieved in step\u202f1 contain all information needed to compute policy\u2011adjusted severity and due dates without additional calculations.",
+    "Escalation of breach findings does not require a separate human approval step according to the escalation policy; an automatic approver identifier can be used."
+  ],
+  "limitations": [
+    "The model returned an empty response once; the agent re-prompted it.",
+    "Stopped at the step budget (1) without an explicit finish."
+  ],
+  "steps_used": 1,
+  "tool_calls": 0,
+  "generated_at": "2026-09-27T19:23:10.081874Z"
+}
