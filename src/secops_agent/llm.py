@@ -58,7 +58,17 @@ class OpenAICompatLLM:
                     if usage is not None
                     else {}
                 )
-                return resp.choices[0].message.content or ""
+                content = (resp.choices[0].message.content or "").strip()
+                if not content and attempt < attempts:
+                    # Reasoning models (gpt-oss and friends) sometimes return an empty
+                    # `content` with the text in `reasoning`. Handing "" upward burned a whole
+                    # agent step and printed "one model response was unparseable" in every live
+                    # run's report. Retry instead; on the final attempt fall through and let the
+                    # agent's own compaction handle it, so this can never become a crash.
+                    last_error = LLMError("provider returned empty content")
+                    self._sleep(min(2 ** (attempt - 1), 8))
+                    continue
+                return content
             except Exception as exc:  # noqa: BLE001 - provider SDK error types vary by version
                 last_error = exc
                 if attempt < attempts:

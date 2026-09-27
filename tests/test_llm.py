@@ -76,3 +76,45 @@ def test_records_token_usage_when_present(monkeypatch):
     monkeypatch.setattr(client._client.chat, "completions", stub)
     client.complete(system="s", messages=[{"role": "user", "content": "x"}])
     assert client.last_usage == {"prompt_tokens": 11, "completion_tokens": 7}
+
+
+class _EmptyThenGood:
+    """Returns empty content once (reasoning model behaviour), then a real answer."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def create(self, **kwargs):
+        self.calls += 1
+        content = "" if self.calls == 1 else '{"done": true}'
+        msg = type("M", (), {"content": content})()
+        return type("R", (), {"choices": [type("C", (), {"message": msg})()]})()
+
+
+def test_empty_content_is_retried_not_returned(monkeypatch):
+    # Live finding: gpt-oss sometimes returns an empty `content` (text in `reasoning`),
+    # and returning "" cost the agent a whole step and printed "one model response was
+    # unparseable" in every single run's report.
+    client = OpenAICompatLLM(_settings(), sleep=lambda _s: None)
+    stub = _EmptyThenGood()
+    monkeypatch.setattr(client._client.chat, "completions", stub)
+
+    assert client.complete(system="s", messages=[{"role": "user", "content": "x"}]) == (
+        '{"done": true}'
+    )
+    assert stub.calls == 2
+
+
+def test_persistently_empty_content_returns_empty_string_without_crashing(monkeypatch):
+    client = OpenAICompatLLM(_settings(llm_max_retries=1), sleep=lambda _s: None)
+    calls = {"n": 0}
+
+    def always_empty(**kwargs):
+        calls["n"] += 1
+        msg = type("M", (), {"content": ""})()
+        return type("R", (), {"choices": [type("C", (), {"message": msg})()]})()
+
+    monkeypatch.setattr(client._client.chat, "completions", SimpleNamespace(create=always_empty))
+    # must NOT raise: the agent's own compaction handles an unparseable response
+    assert client.complete(system="s", messages=[{"role": "user", "content": "x"}]) == ""
+    assert calls["n"] == 2
