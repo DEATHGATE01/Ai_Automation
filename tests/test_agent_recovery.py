@@ -52,6 +52,61 @@ def _agent(tmp_path, responses, fail_forever: bool):
                  retriever=KeywordRetriever([]))
 
 
+STEP = '{"thought": "t", "tool": "flaky", "args": {"key": "k"}}'
+
+
+def _scripted_agent(tmp_path, outcomes, max_tool_failures, max_steps=8):
+    """A tool whose behaviour follows a script, so fail/succeed interleaving can be driven."""
+    seq = iter(outcomes)
+
+    def flaky(key: str):
+        if next(seq):
+            raise ToolError("injected: boom")
+        return {"rows": ["ok"]}
+
+    reg = ToolRegistry()
+    reg.register(ToolSpec(name="flaky", description="d", args_model=Args, fn=flaky))
+    settings = Settings(
+        _env_file=None,
+        data_dir=tmp_path,
+        runs_dir=tmp_path / "runs",
+        prompts_dir=tmp_path / "prompts",
+        max_steps=max_steps,
+        max_tool_failures=max_tool_failures,
+    )
+    responses = [PLAN, *[STEP] * max_steps, FINISH]
+    return Agent(settings=settings, llm=ScriptedLLM(responses), registry=reg,
+                 retriever=KeywordRetriever([]))
+
+
+def test_total_tool_failures_trip_the_budget_even_when_successes_interleave(tmp_path):
+    # Review finding: the gate summed a per-argument counter that is cleared on any success, so
+    # fail/succeed/fail/succeed never tripped it, contradicting the README's "total failures".
+    _write_prompts(tmp_path)
+    agent = _scripted_agent(tmp_path, [True, False, True, False, True], max_tool_failures=2)
+    report = agent.run("g")
+    assert any("failure budget" in limitation for limitation in report.limitations)
+
+
+def test_the_repeat_failure_limitation_describes_what_actually_happens(tmp_path):
+    # Review finding: the report claimed the agent "re-planned around" the failing tool. No
+    # re-planning happens - the loop injects a hint and keeps going. The report must not assert a
+    # recovery behaviour that did not occur.
+    _write_prompts(tmp_path)
+    agent = _scripted_agent(tmp_path, [True] * 8, max_tool_failures=99)
+    report = agent.run("g")
+    joined = " ".join(report.limitations).lower()
+    assert "re-plan" not in joined and "replanned" not in joined
+    assert "change approach" in joined
+
+
+def test_a_stopped_run_does_not_name_a_source_it_never_read(tmp_path):
+    _write_prompts(tmp_path)
+    agent = _scripted_agent(tmp_path, [True], max_tool_failures=1, max_steps=1)
+    report = agent.run("g")
+    assert not any("findings table" in source for source in report.sources)
+
+
 def test_agent_retries_a_failed_tool_and_succeeds(tmp_path):
     _write_prompts(tmp_path)
     agent = _agent(

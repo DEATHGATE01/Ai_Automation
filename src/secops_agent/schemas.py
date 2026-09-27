@@ -170,6 +170,13 @@ def parse_step(raw: str, valid_tools: set[str]) -> ToolCallRequest | FinishReque
         # Live models write pure-reasoning steps as the STRING "null" even when told to use
         # real null; treat both spellings as "no tool", not as an unknown tool name.
         return None
+    if not isinstance(tool, str):
+        # Must be checked BEFORE the membership test: `{} not in valid_tools` raises
+        # TypeError (unhashable), which no caller catches, so the run used to die with a traceback
+        # instead of compacting the bad response like every other malformed reply.
+        raise ValueError(
+            f"'tool' must be a string tool name, got {type(tool).__name__}: {tool!r}"
+        )
     if tool not in valid_tools:
         raise ValueError(f"unknown tool {tool!r}; available: {sorted(valid_tools)}")
 

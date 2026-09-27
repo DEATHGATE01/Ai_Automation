@@ -38,6 +38,15 @@ def test_parse_step_reads_finish():
     assert step.key_findings == ["a"]
 
 
+def test_parse_step_rejects_a_non_string_tool_as_a_readable_error():
+    # Review finding: the membership test `tool not in valid_tools` ran before any type check, so
+    # {"tool": {"name": ...}} raised TypeError: unhashable type: 'dict'. Nothing caught it, so the
+    # run died with a traceback and wrote no report instead of compacting the bad response.
+    for bad in ('{"name": "list_findings"}', '["list_findings"]', "3"):
+        with pytest.raises(ValueError, match="'tool' must be a string"):
+            parse_step('{"thought": "t", "tool": ' + bad + ', "args": {}}', valid_tools=VALID_TOOLS)
+
+
 def test_parse_step_accepts_string_null_tool():
     # Live models write pure-reasoning steps as "tool": "null" (the string) even when told
     # to use real null. That is a reasoning step, not an unknown tool.

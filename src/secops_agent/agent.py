@@ -203,6 +203,9 @@ class Agent:
         ]
         actions_taken: list[str] = []
         failures: dict[str, int] = {}
+        # cumulative, never cleared: this is what `max_tool_failures` counts, so interleaved
+        # successes cannot reset the budget back to zero
+        total_tool_failures = 0
         limitations: list[str] = []
         steps_used = 0
         finish: FinishRequest | None = None
@@ -275,6 +278,8 @@ class Agent:
             fingerprint = f"{step.tool}:{json.dumps(step.args, sort_keys=True, default=str)}"
 
             if outcome["ok"]:
+                # cleared per fingerprint: this counter drives the repeat-failure hint, so it must
+                # mean "consecutive failures of this exact call", not "ever"
                 failures.pop(fingerprint, None)
                 observation = self._compact_observation(step.tool, outcome["result"])
                 if spec.writes:
@@ -284,6 +289,7 @@ class Agent:
                 messages.append({"role": "user", "content": f"observation: {observation['text']}"})
             else:
                 failures[fingerprint] = failures.get(fingerprint, 0) + 1
+                total_tool_failures += 1
                 count = failures[fingerprint]
                 compacted = f"{step.tool} failed: {outcome['error']}"
                 self.trace.emit(
@@ -306,7 +312,8 @@ class Agent:
                         payload={"tool": step.tool, "failures": count, "message": hint},
                     )
                     limitations.append(
-                        f"{step.tool} was unavailable; the agent re-planned around it."
+                        f"{step.tool} failed {count} times running; the agent was told to change "
+                        "approach."
                     )
                     messages.append({"role": "user", "content": hint})
                 else:
@@ -320,7 +327,7 @@ class Agent:
                         }
                     )
 
-            if sum(failures.values()) >= self.settings.max_tool_failures:
+            if total_tool_failures >= self.settings.max_tool_failures:
                 limitations.append(
                     "Tool failure budget exhausted; finishing with partial evidence."
                 )
@@ -348,7 +355,7 @@ class Agent:
             ),
             key_findings=[f"Actions taken before stopping: {len(actions_taken)}"],
             decisions=[],
-            sources=sources or ["findings table"],
+            sources=sources,
         )
 
     def _initial_context(self, plan: Plan) -> str:

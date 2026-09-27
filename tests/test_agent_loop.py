@@ -103,6 +103,18 @@ def test_observations_are_truncated(tmp_path):
     assert len(results[0].payload["text"]) == 40
 
 
+def test_a_wrongly_typed_tool_value_is_compacted_not_fatal(tmp_path):
+    # Review finding: this payload used to raise TypeError out of parse_step, which nothing caught,
+    # so the run died with a traceback and produced no report at all.
+    _write_prompts(tmp_path)
+    bad = '{"thought": "t", "tool": {"name": "lookup"}, "args": {"key": "F-001"}}'
+    good = '{"thought": "t", "tool": "lookup", "args": {"key": "F-001"}}'
+    agent = _agent([PLAN, bad, good, FINISH], tmp_path)
+    report = agent.run("g")
+    assert report.summary.startswith("F-001")
+    assert any(e.kind is StepKind.error for e in agent.trace_events())
+
+
 def test_finish_requires_valid_schema_and_recovers(tmp_path):
     _write_prompts(tmp_path)
     bad_finish = '{"done": true}'  # summary missing -> rejected

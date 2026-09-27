@@ -107,7 +107,7 @@ def request_human_approval(
     auto_approve: bool = False,
     approver: str = "auto",
 ) -> dict[str, Any]:
-    """Ask the operator to approve a consequential action, and mint a single-use reference if granted.
+    """Ask the operator to approve consequential action; mint a single-use reference if granted.
 
     In auto-approve runs (used to record transcripts when no human is present) it self-approves and
     labels itself `mode: auto`, so a transcript can never imply a human was there when none was.
