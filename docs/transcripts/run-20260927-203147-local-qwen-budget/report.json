@@ -1,0 +1,24 @@
+{
+  "run_id": "run-20260927-203147-26c675",
+  "goal": "Identify open critical findings on production assets.",
+  "summary": "The goal was not fully answered within the step budget (5 steps). The evidence gathered so far is recorded in the run transcript.",
+  "key_findings": [
+    "Actions taken before stopping: 1"
+  ],
+  "decisions": [],
+  "actions_taken": [
+    "create_ticket:{\"due_date\": \"2026-10-05\", \"finding_id\": \"F-012\", \"owner\": \"data-platform\", \"severity\": \"critical\", \"summary\": \"Resolve default credentials on monitoring agent\"}"
+  ],
+  "sources": [
+    "create_ticket"
+  ],
+  "assumptions": [
+    "Assume 'production' assets are those listed as such in the asset context returned by get_asset."
+  ],
+  "limitations": [
+    "Stopped at the step budget (5) without an explicit finish."
+  ],
+  "steps_used": 5,
+  "tool_calls": 4,
+  "generated_at": "2026-09-27T20:36:34.249902Z"
+}

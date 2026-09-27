@@ -35,9 +35,12 @@ the honest substitute: the same agent, on the same data, covering ground these t
 | `run-20260927-192234-budget-exhausted` | `--max-steps 1`: an honest "not fully answered within the step budget" report, with nothing invented to fill the gap |
 | `run-20260927-192118-fault-empty` | `SECOPS_INJECT_FAULT=list_findings:empty@1` recovered; the run then hit its own step budget and said so |
 | `run-20260927-191954-fault-badargs` | `SECOPS_INJECT_FAULT=list_findings:bad_args@1` recovered and still produced the full open-findings list |
+| `run-20260927-203147-local-qwen-budget` | The **fixed** code end to end on a local 7B model (Ollama `qwen2.5:7b-instruct`, free of the Groq daily cap): `list_findings(severity="critical")` banded from the parsed rubric, `get_asset`, then ticket `T-90250d7b` — and the run then hit its own 5-step budget and said so, listing `create_ticket` as its only source rather than naming a table it never read |
 
-The last two are two of the three fault modes the injector supports; cohort 1 run 2 covers the third
-(`timeout`), so all three are demonstrated live.
+The two `fault-*` rows are two of the three fault modes the injector supports; cohort 1 run 2 covers
+the third (`timeout`), so all three are demonstrated live. The `local-qwen` row is there because the
+provider's daily cap blocked further runs on the hosted model: it is the same agent on a smaller
+local model, which is a weaker model but an honest end-to-end run of the fixed code.
 
 ## A model quirk, measured
 

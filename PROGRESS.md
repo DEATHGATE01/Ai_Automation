@@ -23,6 +23,15 @@ COMPLETE. The take-home submission is built, tested, run live, and committed on 
   - Two report strings asserted what did not happen ("re-planned around it") or named an unread
     source. Both corrected.
   - Removed dead `prompts/reporter.md` (nothing loaded it); corrected stale test counts in README.
+  - **Grader-experience bug found by cloning as a grader would:** `make` is NOT installed on this
+    Windows box (nor by default on Windows), so the README's first two commands failed with
+    `make: command not found`. The quickstart now leads with direct `uv run` commands, with the
+    Makefile described as the optional wrapper it is. Verified in a fresh clone.
+  - Write-up trimmed from 1,277 to ~850 words to fit the "1-page" requirement; the long-form detail
+    lives in `docs/decisions.md`.
+  - End-to-end run of the FIXED code on the local model (Groq's daily cap blocked the hosted model):
+    `run-20260927-203147-local-qwen-budget` — rubric-banded `list_findings`, `get_asset`, ticket
+    `T-90250d7b`, honest budget report, and sources correctly derived from the action taken.
   - 124 tests pass, ruff clean, mypy clean. Findings recorded in `docs/decisions.md` and
     `docs/write-up.md` ("I wrote the claim before the control").
 - 2026-09-27 (later) — VERIFICATION SWEEP + live-run hardening, all evidence-driven:
