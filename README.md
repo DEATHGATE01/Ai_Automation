@@ -40,14 +40,17 @@ reading of the assignment's "no predefined rules or static outputs" constraint.
 
 ## Quickstart
 
-Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/). No `make` needed — every step below is a
+direct command. (The same steps exist as `make data` / `make test` / `make lint` / `make run` if you
+happen to have `make`; it is a convenience wrapper, not a dependency. `make` is not installed by
+default on Windows, which is why the instructions do not lead with it.)
 
 ```bash
 git clone <repo> && cd secops-agent
-uv sync                 # create the venv and install dependencies
-cp .env.example .env    # then edit .env (see Configuration below)
-make data               # build the SQLite knowledge base from data/*.csv
-make test               # 124 offline tests, no network, no API key
+uv sync                                    # create the venv and install dependencies
+cp .env.example .env                       # then edit .env (see Configuration below)
+uv run python -m secops_agent.build_data   # build the SQLite knowledge base from data/*.csv
+uv run pytest                              # 124 offline tests, no network, no API key
 ```
 
 Then run it:
@@ -149,7 +152,7 @@ src/secops_agent/
   trace.py        JSONL trace writer/reader + markdown transcript renderer
   memory.py       Cross-run memory: what the agent did on similar goals before
   report.py       Report assembly and rendering
-  build_data.py   CSV -> SQLite knowledge base (`make data`)
+  build_data.py   CSV -> SQLite knowledge base (see Quickstart for the command)
   cli.py          run / replay / report
   agent.py        The two-phase loop
   tools/          base.py (registry+validation), knowledge.py, actions.py, faults.py, __init__.py
@@ -162,8 +165,8 @@ docs/             architecture diagram, write-up, decision log, run transcripts
 ## Testing
 
 ```bash
-make test     # 110 tests, ~2s, no network, no API key
-make lint     # ruff + mypy, both clean
+uv run pytest                            # 124 tests, ~3s, no network, no API key
+uv run ruff check src tests && uv run mypy src   # lint + type-check, both clean
 ```
 
 The whole suite runs offline because the LLM sits behind a one-method protocol. `ScriptedLLM` feeds
