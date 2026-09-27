@@ -100,13 +100,56 @@ def strip_code_fence(text: str) -> str:
     return _FENCE_RE.sub("", text.strip()).strip()
 
 
+def extract_first_json_object(text: str) -> str:
+    """Return the first complete JSON object in `text`; the original text if there is none.
+
+    Live models do three things plain `json.loads` rejects: they wrap the object in prose, they
+    put braces inside string values, and they emit several objects back-to-back (observed from
+    gpt-oss, which produced three concatenated tool calls and made json.loads raise
+    "Extra data"). A depth scan that tracks string state handles all three.
+    """
+    stripped = strip_code_fence(text).strip()
+    try:
+        json.loads(stripped)
+        return stripped
+    except json.JSONDecodeError:
+        pass
+
+    start = stripped.find("{")
+    if start == -1:
+        return stripped
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start, len(stripped)):
+        char = stripped[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return stripped[start : index + 1]
+    return stripped
+
+
 def parse_step(raw: str, valid_tools: set[str]) -> ToolCallRequest | FinishRequest | None:
     """Turn one LLM message into a validated request, or raise ValueError with a compact reason.
 
     Returns None for a pure-reasoning step (no tool), which the caller advances without a call.
     """
     try:
-        obj = json.loads(strip_code_fence(raw))
+        obj = json.loads(extract_first_json_object(raw))
     except json.JSONDecodeError as exc:
         raise ValueError(f"response was not valid JSON: {exc.msg}") from exc
 

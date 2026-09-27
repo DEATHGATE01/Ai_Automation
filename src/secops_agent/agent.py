@@ -25,8 +25,8 @@ from .schemas import (
     Plan,
     PlanStep,
     StepKind,
+    extract_first_json_object,
     parse_step,
-    strip_code_fence,
 )
 from .tools.base import ToolRegistry
 from .trace import TraceWriter, load_trace
@@ -97,6 +97,26 @@ class Agent:
 
         for attempt in (1, 2):
             raw = self._complete(system, messages)
+            if not raw.strip():
+                last_error = "the planner returned an empty response"
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            f"{last_error}. Reply with exactly one JSON object and nothing else."
+                        ),
+                    }
+                )
+                self.trace.emit(
+                    StepKind.error,
+                    payload={
+                        "where": "planner",
+                        "attempt": attempt,
+                        "reason": last_error,
+                        "raw": "",
+                    },
+                )
+                continue
             try:
                 plan = self._validate_plan(raw)
             except ValueError as exc:
@@ -109,6 +129,7 @@ class Agent:
                         "attempt": attempt,
                         "reason": last_error,
                         "compacted": compacted,
+                        "raw": raw[:400],
                     },
                 )
                 messages.append({"role": "assistant", "content": raw})
@@ -137,7 +158,7 @@ class Agent:
 
     def _validate_plan(self, raw: str) -> Plan:
         try:
-            obj = json.loads(strip_code_fence(raw))
+            obj = json.loads(extract_first_json_object(raw))
         except json.JSONDecodeError as exc:
             raise ValueError(f"response was not valid JSON ({exc.msg})") from exc
         try:
@@ -189,6 +210,23 @@ class Agent:
         while steps_used < budget:
             steps_used += 1
             raw = self._complete(system, messages)
+            if not raw.strip():
+                # Live: gpt-oss sometimes returns no content at all, and reporting that as
+                # "Expecting value" tells the reader nothing. Name it, and nudge specifically.
+                self._compact_response_error(
+                    messages,
+                    raw,
+                    "the model returned an empty response",
+                    step=steps_used,
+                    nudge=(
+                        "Reply with exactly one JSON object: a tool call, "
+                        "or done:true to finish."
+                    ),
+                )
+                limitations.append(
+                    "The model returned an empty response once; the agent re-prompted it."
+                )
+                continue
             try:
                 step = parse_step(raw, valid_tools=self.registry.names())
             except ValueError as exc:
@@ -338,13 +376,27 @@ class Agent:
         return {"tool": tool, "text": text[:limit], "truncated": truncated, "result": result}
 
     def _compact_response_error(
-        self, messages: list[dict[str, str]], raw: str, reason: str, *, step: int
+        self,
+        messages: list[dict[str, str]],
+        raw: str,
+        reason: str,
+        *,
+        step: int,
+        nudge: str | None = None,
     ) -> None:
-        compacted = f"Your response was rejected: {reason}. Return corrected JSON only."
+        instruction = nudge or "Return corrected JSON only."
+        compacted = f"Your response was rejected: {reason}. {instruction}"
         self.trace.emit(
             StepKind.error,
             step=step,
-            payload={"where": "executor", "reason": reason, "compacted": compacted},
+            payload={
+                "where": "executor",
+                "reason": reason,
+                "compacted": compacted,
+                # keep what the model actually said (truncated) so a failure can be diagnosed
+                # after the fact instead of guessed at
+                "raw": raw[:400],
+            },
         )
         messages.append({"role": "assistant", "content": raw})
         messages.append({"role": "user", "content": compacted})

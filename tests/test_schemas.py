@@ -46,6 +46,36 @@ def test_parse_step_accepts_string_null_tool():
     assert step is None
 
 
+def test_parse_step_tolerates_prose_around_the_json():
+    raw = (
+        'Sure! Here is the call:\n'
+        '{"thought": "t", "tool": "list_findings", "args": {}}\n'
+        "Hope that helps."
+    )
+    assert parse_step(raw, valid_tools=VALID_TOOLS).tool == "list_findings"
+
+
+def test_parse_step_takes_the_first_of_several_concatenated_objects():
+    # Live: gpt-oss emitted three JSON objects back to back, so json.loads raised
+    # "Extra data" and the agent burned a step. One action per turn is the contract;
+    # the first object is the one it wants now.
+    raw = (
+        '{"thought": "a", "tool": "list_findings", "args": {}}'
+        '{"thought": "b", "tool": "search_policy", "args": {}}'
+    )
+    assert parse_step(raw, valid_tools=VALID_TOOLS).tool == "list_findings"
+
+
+def test_extraction_respects_braces_inside_string_values():
+    raw = '{"thought": "close the } brace and { this", "tool": "list_findings", "args": {}}'
+    assert parse_step(raw, valid_tools=VALID_TOOLS).thought == "close the } brace and { this"
+
+
+def test_parse_step_still_rejects_genuinely_bad_input():
+    with pytest.raises(ValueError, match="not valid JSON"):
+        parse_step("I cannot help with that.", valid_tools=VALID_TOOLS)
+
+
 def test_parse_step_strips_markdown_fence():
     raw = '```json\n{"thought": "t", "tool": "get_asset", "args": {"asset_id": "A-001"}}\n```'
     step = parse_step(raw, valid_tools={"get_asset"})

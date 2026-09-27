@@ -112,6 +112,20 @@ def test_finish_requires_valid_schema_and_recovers(tmp_path):
     assert any(e.kind is StepKind.error for e in agent.trace_events())
 
 
+def test_empty_response_is_reported_as_empty_not_as_bad_json(tmp_path):
+    # Live: gpt-oss sometimes returns no content at all. "Expecting value" is a useless
+    # thing to tell a reader, and the nudge sent back to the model should be specific.
+    _write_prompts(tmp_path)
+    agent = _agent([PLAN, "", FINISH], tmp_path)
+    report = agent.run("g")
+    reasons = [
+        e.payload.get("reason", "") for e in agent.trace_events() if e.kind is StepKind.error
+    ]
+    assert any("empty" in r for r in reasons)
+    assert any("empty" in str(lim).lower() for lim in report.limitations)
+    assert report.summary.startswith("F-001")
+
+
 def test_bad_tool_arguments_are_fed_back_not_crashed(tmp_path):
     _write_prompts(tmp_path)
     # 'key' is required; this call omits it -> ValueError -> compacted, then recover
