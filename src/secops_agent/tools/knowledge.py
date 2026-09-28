@@ -38,7 +38,7 @@ def load_severity_bands(rubric_path: Path) -> tuple[tuple[str, float, float], ..
     if not path.exists():
         raise ToolError(
             f"severity rubric missing at {path}; the policy corpus is the source of truth and "
-            "`make data` restores it"
+            "`uv run python -m secops_agent.build_data` restores it"
         )
     bands = tuple(
         (name.lower(), float(low), float(high))
@@ -82,7 +82,10 @@ def _cvss_band(cvss: float | None, bands: tuple[tuple[str, float, float], ...]) 
 @contextmanager
 def _connect(db_path: Path) -> Iterator[sqlite3.Connection]:
     if not Path(db_path).exists():
-        raise ToolError(f"knowledge base missing at {db_path}; run `make data`")
+        raise ToolError(
+            f"knowledge base missing at {db_path}; "
+            "run `uv run python -m secops_agent.build_data`"
+        )
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     try:

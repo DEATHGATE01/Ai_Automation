@@ -40,7 +40,11 @@ def _print_plan(plan: Plan) -> None:
 
 def cmd_run(args: argparse.Namespace, settings: Settings) -> int:
     if not settings.db_path.exists():
-        print(f"knowledge base missing: {settings.db_path}\nRun: make data", file=sys.stderr)
+        print(
+            f"knowledge base missing: {settings.db_path}\n"
+            "Run: uv run python -m secops_agent.build_data",
+            file=sys.stderr,
+        )
         return 2
 
     retriever = build_retriever(settings)

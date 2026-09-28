@@ -63,12 +63,6 @@ real ids, and the executor prompt forbids concluding from an unverified assumpti
 `...191702-unknown-asset-selfcorrected`). Both runs are shipped because "here is my agent failing,
 here is the fix, here is it passing" is stronger evidence than nine clean runs.
 
-`run-20260927-001829-bd9528/` — the very first live attempt on a 4096-token local model
-(`codellama:7b-instruct`): both planner attempts overflowed and returned unparseable output, and the
-fallback plan engaged correctly (labelled, no fake plan). Kept as evidence that the planner fallback
-works under a model failure, and as the reason the README documents the ~8K-context model
-requirement.
-
 ## How these were generated and labelled
 
 - All runs are of the unmodified agent on the synthetic knowledge base in `data/` — no findings,

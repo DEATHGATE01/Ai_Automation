@@ -1,7 +1,7 @@
 """Build the SQLite knowledge base from the CSV files in data/.
 
 Kept as a module rather than a loose script so it is importable and testable. `python -m
-secops_agent.build_data` is the entry point; `make data` wraps it.
+secops_agent.build_data` is the entry point (see the Quickstart).
 
 An empty CVSS cell becomes a real SQL NULL, not an empty string. That distinction is load-bearing:
 "no score available" must be visibly different from "score of 0", because the rubric tells the agent

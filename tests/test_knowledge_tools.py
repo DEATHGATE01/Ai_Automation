@@ -153,5 +153,5 @@ def test_cvss_band_is_raw_and_ignores_business_criticality(db):
 
 
 def test_missing_database_raises_a_helpful_error(tmp_path):
-    with pytest.raises(ToolError, match="run `make data`"):
+    with pytest.raises(ToolError, match=r"run `uv run python -m secops_agent\.build_data`"):
         knowledge.list_findings(tmp_path / "nope.db")

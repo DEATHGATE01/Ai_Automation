@@ -40,17 +40,14 @@ reading of the assignment's "no predefined rules or static outputs" constraint.
 
 ## Quickstart
 
-Requires Python 3.12 and [uv](https://docs.astral.sh/uv/). No `make` needed — every step below is a
-direct command. (The same steps exist as `make data` / `make test` / `make lint` / `make run` if you
-happen to have `make`; it is a convenience wrapper, not a dependency. `make` is not installed by
-default on Windows, which is why the instructions do not lead with it.)
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/). Every step is a direct command.
 
 ```bash
 git clone <repo> && cd secops-agent
 uv sync                                    # create the venv and install dependencies
 cp .env.example .env                       # then edit .env (see Configuration below)
 uv run python -m secops_agent.build_data   # build the SQLite knowledge base from data/*.csv
-uv run pytest                              # 139 offline tests, no network, no API key
+uv run pytest                              # 151 offline tests, no network, no API key
 ```
 
 Then run it:
@@ -65,8 +62,6 @@ Or with a simulated outage, to watch it recover:
 SECOPS_INJECT_FAULT=list_findings:timeout@1 \
   uv run secops-agent run "Triage the findings on the core database asset."
 ```
-
-`make run GOAL="..."` is a thin wrapper around the first form.
 
 ## Configuration
 
@@ -163,14 +158,14 @@ src/secops_agent/
   tools/          base.py (registry+validation), knowledge.py, actions.py, faults.py, __init__.py
 data/             synthetic assets.csv, findings.csv, policies/*.md
 prompts/          planner.md, executor.md
-tests/            139 offline tests
+tests/            151 offline tests
 docs/             architecture diagram, write-up, decision log, run transcripts
 ```
 
 ## Testing
 
 ```bash
-uv run pytest                            # 139 tests, ~3s, no network, no API key
+uv run pytest                            # 151 tests, ~3s, no network, no API key
 uv run ruff check src tests && uv run mypy src   # lint + type-check, both clean
 ```
 
