@@ -98,11 +98,13 @@ COMPLETE. The take-home submission is built, tested, run live, and committed on 
   decision left to the user).
 
 ## Remaining (manual, user)
-- Create the public GitHub repo (`gh` not installed) and push `build/v1`.
-- Submit the form: Engineer track, repo link, architecture diagram upload (docs/architecture.html
-  → print to PDF from the browser), transcripts upload (zip docs/transcripts/ or the README plus
-  run 1-3 folders), write-up (docs/write-up.md), domain goal text, time spent (~10-12h including
-  the live-run debugging), copy declaration.
+- ~~Create the public GitHub repo and push `build/v1`~~ — DONE (2026-09-28 22:5x): pushed to
+  https://github.com/DEATHGATE01/Ai_Automation (branch `build/v1`, 43 commits, README verified rendering,
+  default branch correct). Used for the form's repo-link field.
+- Submit the form — **needs the user's hands**: Google blocks sign-in from the automated browser
+  ("This browser or app may not be secure", reproduced twice cleanly). Everything is pre-assembled:
+  paste-ready answers in ../submission/form-answers.txt (repo link now filled with the pushed URL);
+  uploads ready: architecture.pdf, transcripts.zip, synthetic-traces.zip, code.zip (commit e6c30e5).
 - Deadline question RESOLVED by HR (2026-09-28): the email states a strict deadline, but "if you submit
   it as soon as possible and your methodology is found good we can consider it" — so submit ASAP.
   Paste-ready answers and upload files are in ../submission/ (form-answers.txt, architecture.pdf,
