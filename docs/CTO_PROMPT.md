@@ -13,6 +13,22 @@ ORIENT - in this order:
                             method, the reporting contract. It is authoritative.
   4. docs/decisions.md, AGENTS.md, PROGRESS.md.
 
+PASS DISCIPLINE - measured, not advice. The pass history shows 3 consecutive 90-minute timeouts with
+ZERO commits: work was done, then lost at the time boundary. A pass that ends with nothing committed is
+a failed pass regardless of how much it did. Therefore:
+
+  - Orient in at most 15 minutes (lessons, report, git log/status, suite/lint/types).
+  - Pick ONE deliverable for this pass (a fix, a feature, a harness, a transcript cohort) and LAND it:
+    green suite, then commit. Only then start anything else.
+  - Timebox exploration. If you are 80% through something when the pass will soon end, either finish it
+    or record precisely where it stands in docs/cto-report.md so the next pass resumes it instead of
+    redoing it.
+  - Deal with orphaned work first: the tree may contain uncommitted changes from a timed-out predecessor
+    (there is a new tests/test_plan_bounds.py and edits across agent/schemas/tests right now). Verify
+    them by execution - 139 tests were passing, 2 ruff errors sat in agent.py:188 and
+    tests/test_plan_bounds.py:28 - fix, commit as this pass's first deliverable, or revert with
+    git checkout. Do not leave them dirty.
+
 THEN:
 
 1. Establish the true state: `git log --oneline -10`, `git status`, `uv run pytest`,

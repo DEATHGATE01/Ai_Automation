@@ -93,4 +93,29 @@ a report, and the human can lift them in one edit — but it may not remove them
 **Runtime.** The successor overseer was restarted with a 12-pass budget (was 8). It still exits early if
 the overseer writes `.cto-stop`, so the effective limit is its own judgement, not the counter.
 
+---
+
+## 2026-09-28 13:4x — pass 0d (runtime retune: the passes were timing out)
+
+**What the evidence shows.** All three overnight passes so far ended `rc=124` — killed by the 90-minute
+per-pass cap, each mid-flight: pass 1 (03:35→05:06), pass 2 (07:06→08:36), pass 3 (10:36→12:06). Commits
+since 03:35: **zero** (the three in the log are the human's scaffolding). The work was real — the tree
+carried an uncommitted `tests/test_plan_bounds.py` plus edits across `agent.py`, `schemas.py` and four
+test files, 139 tests passing, 2 ruff errors — but every pass ran out of time before it could land
+anything, and the 2h gap between passes made it worse. The CTO did not fail; the runtime did.
+
+**Retuned.** Per-pass cap 90min → 2h; between-pass wait 2h → 10min (passes now chain); budget 12 → 6
+passes (~12h at the measured pace, the real limit is still its own judgement via `.cto-stop`).
+
+**Scope discipline added to `docs/CTO_PROMPT.md`** (this is the fix that matters, not the timeout):
+orient ≤15 min; pick ONE deliverable and land it green+committed before anything else; timebox
+exploration; record half-finished work precisely so the next pass resumes instead of redoes; and deal
+with orphaned work first — which is this pass's first job, since the tree is dirty with the timed-out
+pass's changes.
+
+**Standing lesson.** An unattended loop must be tuned to the measured pace of its worker, not a guessed
+one. The first three passes looked busy and produced nothing — the same "looks like success" failure as
+an empty-but-valid PDF, one level up.
+
+
 

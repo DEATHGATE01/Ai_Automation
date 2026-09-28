@@ -103,7 +103,10 @@ COMPLETE. The take-home submission is built, tested, run live, and committed on 
   → print to PDF from the browser), transcripts upload (zip docs/transcripts/ or the README plus
   run 1-3 folders), write-up (docs/write-up.md), domain goal text, time spent (~10-12h including
   the live-run debugging), copy declaration.
-- Deadline question (48h vs 5-7 days) still unresolved with HR — if 48h applies, submit today.
+- Deadline question RESOLVED by HR (2026-09-28): the email states a strict deadline, but "if you submit
+  it as soon as possible and your methodology is found good we can consider it" — so submit ASAP.
+  Paste-ready answers and upload files are in ../submission/ (form-answers.txt, architecture.pdf,
+  transcripts.zip, synthetic-traces.zip, code.zip).
 
 ## Open Decisions / Questions
 - Is the 3-option `Agentic AI Assessment.docx` or the 2-track Google Form the real gate?
