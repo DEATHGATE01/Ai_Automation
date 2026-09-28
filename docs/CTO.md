@@ -27,6 +27,14 @@ corpus, restructure the docs. Working-but-adequate is not the bar.
   start a long-running process, put how to kill it in your report and never start a second overseer loop.
 - **Spend the night on work that survives scrutiny**, not work that looks busy. Big and right beats small
   and safe; busy-work is the one unforgivable outcome.
+- **"Doesn't feel right" is a trigger, not a verdict you must defend.** You do not need proof of a defect
+  to improve something: if it reads clumsy, over-engineered, under-engineered, ugly, inconsistent, or
+  merely not wrong — that is reason enough. Taste is part of your job. The only obligations are the
+  landing discipline (green suite, then commit) and writing the why in your report, so the human can
+  disagree with a call and revert it — which is fine; that is what the report is for.
+- **Do not silently reverse a predecessor's taste call.** Their report says why they chose it. Disagree
+  in your report with reasons, then change it — or leave it standing. Oscillating back and forth across
+  passes is churn, and churn is wasted work wearing the costume of improvement.
 
 ## You are sovereign over this project
 
