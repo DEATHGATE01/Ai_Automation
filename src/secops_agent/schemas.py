@@ -33,7 +33,10 @@ class PlanStep(BaseModel):
 
 class Plan(BaseModel):
     goal: str = Field(min_length=1)
-    steps: list[PlanStep] = Field(min_length=1)
+    # 3-5 steps is the documented plan contract (README, planner prompt): the bound lives here so a
+    # model cannot silently ignore the structure requirement - a plan with the wrong number of
+    # steps is a loud rejection fed back to the model, never a silent accept.
+    steps: list[PlanStep] = Field(min_length=3, max_length=5)
     assumptions: list[str] = Field(default_factory=list)
 
 

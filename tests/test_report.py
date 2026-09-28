@@ -3,7 +3,10 @@ from secops_agent.schemas import FinishRequest, Plan
 
 PLAN = Plan(
     goal="g",
-    steps=[{"index": 1, "description": "look", "tool": "list_findings", "rationale": "r"}],
+    steps=[
+        {"index": i, "description": f"step {i}", "tool": "list_findings", "rationale": "r"}
+        for i in range(1, 4)
+    ],
 )
 FINISH = FinishRequest(
     thought="t", summary="Answer.", key_findings=["k1"], sources=["sla_policy.md"]

@@ -38,8 +38,8 @@ REPEAT_FAILURE_HINT = (
 )
 
 FALLBACK_REASON = (
-    "The planner did not return a usable plan. This is a fallback plan: one exploratory step that "
-    "inspects the findings register and the policy corpus before deciding anything."
+    "The planner did not return a usable plan. This is a labelled fallback plan: read the "
+    "evidence and the policy corpus through the available tools, then decide - nothing is assumed."
 )
 
 
@@ -176,17 +176,41 @@ class Agent:
 
     def _fallback_plan(self, goal: str, reason: str) -> Plan:
         names = sorted(self.registry.names())
-        tool = "list_findings" if "list_findings" in names else (names[0] if names else None)
-        return Plan(
-            goal=goal,
-            steps=[
+        # The fallback must satisfy the same Plan contract as a model-produced plan (3-5 steps):
+        # after the bounds were added to the schema, a 1-step fallback crashed the run with a
+        # traceback out of _fallback_plan itself - no compaction, no report.
+        # Step 1 uses an available tool when one exists (pinned by test, preferring the register);
+        # later steps name the policy tool or run without one.
+        inspect_tool = (
+            "list_findings" if "list_findings" in names else (names[0] if names else None)
+        )
+        fallback_steps = [
+            (
+                "Inspect the findings register to see what is open and how it is banded.",
+                inspect_tool,
+            ),
+            (
+                "Read the severity rubric and remediation SLA policy for the windows and bands.",
+                "search_policy" if "search_policy" in names else None,
+            ),
+            (
+                "Use the observations above to decide what matters and what is still unknown.",
+                None,
+            ),
+        ]
+        steps: list[PlanStep] = []
+        for i, (description, tool) in enumerate(fallback_steps, start=1):
+            steps.append(
                 PlanStep(
-                    index=1,
-                    description="Inspect the findings register and the policy corpus, then decide.",
+                    index=i,
+                    description=description,
                     tool=tool,
                     rationale="Exploratory fallback after two planner failures.",
                 )
-            ],
+            )
+        return Plan(
+            goal=goal,
+            steps=steps,
             assumptions=[FALLBACK_REASON, f"Planner errors: {reason}"],
         )
 

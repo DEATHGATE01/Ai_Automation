@@ -8,8 +8,11 @@ from secops_agent.schemas import StepKind
 from secops_agent.tools.base import ToolRegistry, ToolSpec
 
 PLAN = (
-    '{"goal": "g", "steps": [{"index": 1, "description": "look", "tool": "lookup",'
-    ' "rationale": "r"}], "assumptions": []}'
+    '{"goal": "g", "steps": ['
+    '{"index": 1, "description": "look", "tool": "lookup", "rationale": "r"},'
+    '{"index": 2, "description": "read policy", "tool": null, "rationale": "r"},'
+    '{"index": 3, "description": "decide", "tool": null, "rationale": "r"}], '
+    '"assumptions": []}'
 )
 FINISH = (
     '{"thought": "done", "done": true, "summary": "F-001 is critical and breached.",'

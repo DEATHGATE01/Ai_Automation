@@ -8,8 +8,11 @@ from secops_agent.schemas import StepKind
 from secops_agent.tools.base import ToolError, ToolRegistry, ToolSpec
 
 PLAN = (
-    '{"goal": "g", "steps": [{"index": 1, "description": "look", "tool": "flaky",'
-    ' "rationale": "r"}], "assumptions": []}'
+    '{"goal": "g", "steps": ['
+    '{"index": 1, "description": "look", "tool": "flaky", "rationale": "r"},'
+    '{"index": 2, "description": "read policy", "tool": null, "rationale": "r"},'
+    '{"index": 3, "description": "decide", "tool": null, "rationale": "r"}], '
+    '"assumptions": []}'
 )
 FINISH = (
     '{"thought": "done", "done": true, "summary": "Recovered and answered.",'
