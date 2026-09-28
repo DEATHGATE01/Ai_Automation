@@ -117,5 +117,78 @@ pass's changes.
 one. The first three passes looked busy and produced nothing — the same "looks like success" failure as
 an empty-but-valid PDF, one level up.
 
+---
+
+## 2026-09-28 15:4x — pass 1 (first pass of the retuned loop: orphaned work landed, gate attacked live)
+
+**State found.** Branch `build/v1`, tree dirty with the timed-out predecessor's orphaned work
+(`tests/test_plan_bounds.py` untracked; edits across `agent.py`, `schemas.py`, four test files).
+`uv run pytest` -> **139 passed in 4.51s**; `uv run ruff check src tests` -> **All checks passed**;
+`uv run mypy src` -> **Success: no issues found in 16 source files**. The 2 ruff errors pass 0d
+reported sitting at `agent.py:188` and `tests/test_plan_bounds.py:28` were already fixed by the
+predecessor before it died — the tree was cleaner than its log claimed.
+
+**Predecessor audit.** Pass 0d's central claim ("3 consecutive rc=124, zero commits") verified TRUE by
+execution: `grep -c "rc=124" ~/AppData/Local/hermes/scripts/cto-overnight.log` -> **3** (pass 1
+05:06, pass 2 08:36, pass 3 12:06, matching the report exactly). One claim was too narrow: the 2
+ruff errors were described as sitting in the tree; by the time this pass looked, the predecessor had
+already fixed them. Corrected here.
+
+**Orphaned work verified and landed (commit `83787ee`).** The diff is coherent: `Plan` gains the
+documented 3-5 step bound (`min_length=3, max_length=5`), `_fallback_plan` (agent.py:177-215) was
+rewritten to satisfy the same contract after the bound would have crashed the old 1-step fallback,
+and 5 new tests pin the bounds. Landed green: 139 passed, ruff+mypy clean.
+
+**Gate attacked live, through the path the LLM actually uses** (`build_registry(...)` ->
+`registry.call_safe('escalate', ...)`), in a scratch probe against a tempdir — all attacks blocked:
+- fabricated approver+ref (`APR-deadbeef`) -> `unknown or already-used approval_ref`
+- real ref aimed at a different finding -> `was issued for finding F-009, not F-011`
+- replayed (already-spent) ref -> `unknown or already-used approval_ref`
+- mismatched approver -> `does not match the approver recorded for ...`
+- blank `approval_ref` / blank `approver` -> rejected at the schema layer, before the ledger
+
+The README claim that the model cannot fabricate its way past the gate is **true of the current
+code** — the first time that claim has been verified by attack rather than assumed (it had been wrong
+twice before).
+
+**Probe bug worth recording (a defect in myself, not the repo).** `Settings` takes `data_dir` as a
+field and derives `db_path`/`tickets_path`/`escalations_path` as **properties**
+(config.py:52-70); passing the path kwargs directly is **silently ignored** (`extra="ignore"`). My
+first probe constructed `Settings(db_path=tmp, ...)` and wrote 2 records into the repo's real
+`data/escalations.jsonl`. Removed by filtering on the probe's own approval refs (the 2 original
+graded-run records kept, `wc -l` -> 2); the file is gitignored and was never committed. A regression
+test (`tests/test_gate_wiring.py`) now pins the assembled wiring so the next person cannot make the
+same mistake silently — the tests construct `Settings(_env_file=None, data_dir=tmp_path, ...)` and
+assert the record lands in the file `Settings.escalations_path` names.
+
+**What changed (commit `475aa4c`).**
+- `tests/test_gate_wiring.py` (new, 6 tests): the unit tests call `actions.escalate(ledger, ...)`
+  directly, bypassing two layers the model never bypasses — `EscalateArgs` validation inside
+  `call_safe` and the `build_registry` wiring that binds the ledger and the audit file. A refactor
+  that re-routed either layer around the ledger would leave every unit test green while the gate went
+  dark. The assembled path is now pinned for all four attacks plus blank fields, and the happy path
+  is asserted to write the audit file `Settings.escalations_path` names.
+- Stale-claims fixed (a claim the tree contradicted): README said **134** tests in three places and
+  `docs/write-up.md` once; the suite is 145. `.env.example` said a trailing `#` after `=` "gets
+  parsed as the key"; the config validator (config.py:72-82) treats it as the **value**.
+- Verified after: `uv run pytest` -> **145 passed**; ruff -> All checks passed; mypy -> Success.
+
+**Anomaly.** A commit I did not make (`10e7ed5`, docs-only charter edits to `CTO.md`/`CTO_PROMPT.md`,
+authored 14:26 — between this pass's two commits at 14:07 and 15:26) appeared in `git log` mid-pass.
+No other process is running (only this hermes instance in `ps aux`), the working tree is clean, and
+the commit conflicts with nothing here. Left standing, flagged for the human.
+
+**Left for the next pass.** No known defects outstanding. Worth doing, in value order:
+- A second live transcript on the current code (the provider's daily cap was hit 2026-09-27/28; the
+  three graded transcripts predate the plan-bounds and fallback changes).
+- An evaluation harness for the agent's judgements — the write-up itself names this as the biggest
+  gap.
+- `python -m build` wheel/sdist check, to prove the package builds from a clean tree.
+
+**Risk assessment.** The gate has now survived a live attack through the real path, with the wiring
+pinned by tests, so the residual overclaim risk is much lower than at bootstrap. The tree is clean at
+145 tests. The main residual risk is process, not code: an interloper commit appeared in the branch
+mid-pass, and the manual steps (public repo, push, form) still belong to the human.
+
 
 

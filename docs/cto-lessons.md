@@ -10,6 +10,8 @@ Twice now, the README and docstrings have asserted a security property the code 
 first `escalate` gate checked only that two strings were non-empty, so the model could invent both. The
 fix is not "write more docs", it is: **read the claim, then try to falsify it by execution, through the
 path the model actually uses.** Docs that describe intent are the defect surface, not the proof.
+Corollary: a stale number in prose (README said 134 tests; the suite was 139) is the same class — after
+adding tests, grep for the old count before finishing.
 
 ## Lesson 2 — When the failure mode is omission, the default must be restrictive
 
@@ -28,3 +30,18 @@ as evidence.
 
 Two report strings claimed things that had not occurred (a "re-plan" that was a hint injection; a
 source that was never read). If the honest sentence is weaker, use the weaker sentence.
+
+## Lesson 5 — A Settings-style path kwarg that is silently ignored writes real files to real paths
+
+`Settings` takes `data_dir` as a field and derives the paths as properties (config.py:52-70); passing
+`Settings(db_path=..., tickets_path=...)` is silently ignored (`extra="ignore"`), so the writes go to
+the repo's real data/ — the probe polluted the repo's own audit file. When constructing settings for
+a probe or test, pass the **field** (`data_dir`), never a derived path kwarg; a regression test pins
+the assembled wiring so the mistake cannot pass silently.
+
+## Lesson 6 — Attack the assembled path, not the unit under test
+
+The gate's unit tests called `actions.escalate(ledger, ...)` directly and were green; the assembled
+path (`build_registry` -> `call_safe`) carries two layers the unit never sees (args validation,
+wiring), and a refactor could re-route either around the ledger while every unit test stays green.
+Pin the path the LLM actually uses (`tests/test_gate_wiring.py`), not only the function.
