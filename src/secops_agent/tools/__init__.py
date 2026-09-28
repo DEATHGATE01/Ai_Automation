@@ -98,7 +98,14 @@ def build_registry(settings: Settings, retriever: Retriever) -> ToolRegistry:
                 "management policies. Use this before deciding any severity or deadline."
             ),
             args_model=SearchPolicyArgs,
-            fn=lambda query, k=4: retriever.search(query, k=k),
+            fn=guarded(
+                "search_policy",
+                # wrapped like every other data tool: without this the documented
+                # SECOPS_INJECT_FAULT=search_policy:... spec silently never fired (found by
+                # execution in pass 2 of the CTO oversight, after a transcript claimed a recovery
+                # from an injection that never happened)
+                lambda query, k=4: retriever.search(query, k=k),
+            ),
         )
     )
     reg.register(
@@ -168,6 +175,21 @@ def build_registry(settings: Settings, retriever: Retriever) -> ToolRegistry:
             side_effect=True,
         )
     )
+
+    # A fault spec naming a tool that does not exist must fail loudly at build time: the injector
+    # would silently never fire for it, which is the inert-by-omission failure this module's
+    # guarded() wrapper exists to prevent (found by execution during the CTO oversight).
+    parsed = settings.inject_fault
+    from .faults import parse_fault_spec
+
+    spec = parse_fault_spec(parsed)
+    if spec is not None:
+        target = spec[0]
+        if target not in reg.names():
+            raise ValueError(
+                f"SECOPS_INJECT_FAULT names tool {target!r}, which is not registered "
+                f"(registered: {sorted(reg.names())})"
+            )
     return reg
 
 
